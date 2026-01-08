@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "westus3"
+    },
+    "environmentName": {
+      "value": "me-gpullm"
+    },
+    "managedEnvironments_me_gpullm_name": {
+      "value": "me-gpullm"
+    },
+    "registries_jvllmcontainers_name": {
+      "value": "jvllmcontainers"
+    },
+    "workspaces_workspacegpullmrg9013_name": {
+      "value": "workspacegpullmrg9013"
+    },
+    "containerImageName": {
+      "value": "jvllmcontainers.azurecr.io/gemma-3-4b-gpu:latest"
+    },
+    "cpuCores": {
+      "value": "4.0"
+    },
+    "memorySize": {
+      "value": "8Gi"
+    },
+    "minReplicas": {
+      "value": 1
+    },
+    "maxReplicas": {
+      "value": 2
+    }
+  }
+}

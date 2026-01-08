@@ -1,0 +1,5 @@
+setenv.ps1
+__pycache__/
+
+# Ignore Python cache files
+*.pyc

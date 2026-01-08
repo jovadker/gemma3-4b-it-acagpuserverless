@@ -1,0 +1,145 @@
+DEBUG: cli.knack.cli: Command arguments: ['deployment', 'group', 'create', '--resource-group', 'GPU.LLM.RG', '--template-file', '.\\infra\\main.bicep', '--parameters', '.\\infra\\main.parameters.json', '--debug']
+DEBUG: cli.knack.cli: __init__ debug log:
+Cannot enable color.
+DEBUG: cli.knack.cli: Event: Cli.PreExecute []
+DEBUG: cli.knack.cli: Event: CommandParser.OnGlobalArgumentsCreate [<function CLILogging.on_global_arguments at 0x000002D218EF4540>, <function OutputProducer.on_global_arguments at 0x000002D219485940>, <function CLIQuery.on_global_arguments at 0x000002D2194DF880>]
+DEBUG: cli.knack.cli: Event: CommandInvoker.OnPreCommandTableCreate []
+DEBUG: cli.azure.cli.core: Modules found from index for 'deployment': ['azure.cli.command_modules.resource']
+DEBUG: cli.azure.cli.core: Loading command modules:
+DEBUG: cli.azure.cli.core: Name                  Load Time    Groups  Commands
+DEBUG: cli.azure.cli.core: resource                  1.122        52       234
+DEBUG: cli.azure.cli.core: Total (1)                 1.122        52       234
+DEBUG: cli.azure.cli.core: These extensions are not installed and will be skipped: ['azext_ai_examples', 'azext_next']
+DEBUG: cli.azure.cli.core: Loading extensions:
+DEBUG: cli.azure.cli.core: Name                  Load Time    Groups  Commands  Directory
+DEBUG: cli.azure.cli.core: Total (0)                 0.000         0         0  
+DEBUG: cli.azure.cli.core: Loaded 52 groups, 234 commands.
+DEBUG: cli.azure.cli.core: Found a match in the command table.
+DEBUG: cli.azure.cli.core: Raw command  : deployment group create
+DEBUG: cli.azure.cli.core: Command table: deployment group create
+DEBUG: cli.knack.cli: Event: CommandInvoker.OnPreCommandTableTruncate [<function AzCliLogging.init_command_file_logging at 0x000002D21B39D120>]
+DEBUG: cli.azure.cli.core.azlogging: metadata file logging enabled - writing logs to 'C:\Users\jovadker\.azure\commands\2025-12-13.10-07-52.deployment_group_create.28624.log'.
+INFO: az_command_data_logger: command args: deployment group create --resource-group {} --template-file {} --parameters {} --debug
+DEBUG: cli.knack.cli: Event: CommandInvoker.OnPreArgumentLoad [<function register_global_subscription_argument.<locals>.add_subscription_parameter at 0x000002D21BBE2700>]
+DEBUG: cli.knack.cli: Event: CommandInvoker.OnPostArgumentLoad []
+DEBUG: cli.knack.cli: Event: CommandInvoker.OnPostCommandTableCreate [<function register_ids_argument.<locals>.add_ids_arguments at 0x000002D21BC24A40>, <function register_cache_arguments.<locals>.add_cache_arguments at 0x000002D21BC24C20>, <function register_upcoming_breaking_change_info.<locals>.update_breaking_change_info at 0x000002D21BC24CC0>]
+DEBUG: cli.knack.cli: Event: CommandInvoker.OnCommandTableLoaded []
+DEBUG: cli.knack.cli: Event: CommandInvoker.OnPreParseArgs []
+DEBUG: cli.knack.cli: Event: CommandInvoker.OnPostParseArgs [<function OutputProducer.handle_output_argument at 0x000002D2194859E0>, <function CLIQuery.handle_query_parameter at 0x000002D2194DF920>, <function register_ids_argument.<locals>.parse_ids_arguments at 0x000002D21BC24AE0>]
+DEBUG: cli.azure.cli.command_modules.resource._bicep: Current value of "use_binary_from_path": false.
+DEBUG: cli.azure.cli.command_modules.resource._bicep: Bicep CLI installation path: C:\Users\jovadker\.azure\bin\bicep.exe
+DEBUG: cli.azure.cli.command_modules.resource._bicep: Bicep CLI installed: True.
+DEBUG: cli.azure.cli.core.util: attempting to read file .\infra\main.parameters.json as utf-8-sig
+DEBUG: cli.azure.cli.core.commands.client_factory: Getting management service client client_type=DeploymentsMgmtClient
+DEBUG: cli.azure.cli.core.auth.persistence: build_persistence: location='C:\\Users\\jovadker\\.azure\\msal_token_cache.bin', encrypt=True
+DEBUG: cli.azure.cli.core.auth.binary_cache: load: C:\Users\jovadker\.azure\msal_http_cache.bin
+DEBUG: urllib3.util.retry: Converted retries value: 1 -> Retry(total=1, connect=None, read=None, redirect=None, status=None)
+DEBUG: msal.authority: Initializing with Entra authority: https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90
+DEBUG: msal.authority: openid_config("https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90/v2.0/.well-known/openid-configuration") = {'token_endpoint': 'https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90/oauth2/v2.0/token', 'token_endpoint_auth_methods_supported': ['client_secret_post', 'private_key_jwt', 'client_secret_basic', 'self_signed_tls_client_auth'], 'jwks_uri': 'https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90/discovery/v2.0/keys', 'response_modes_supported': ['query', 'fragment', 'form_post'], 'subject_types_supported': ['pairwise'], 'id_token_signing_alg_values_supported': ['RS256'], 'response_types_supported': ['code', 'id_token', 'code id_token', 'id_token token'], 'scopes_supported': ['openid', 'profile', 'email', 'offline_access'], 'issuer': 'https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90/v2.0', 'request_uri_parameter_supported': False, 'userinfo_endpoint': 'https://graph.microsoft.com/oidc/userinfo', 'authorization_endpoint': 'https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90/oauth2/v2.0/authorize', 'device_authorization_endpoint': 'https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90/oauth2/v2.0/devicecode', 'http_logout_supported': True, 'frontchannel_logout_supported': True, 'end_session_endpoint': 'https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90/oauth2/v2.0/logout', 'claims_supported': ['sub', 'iss', 'cloud_instance_name', 'cloud_instance_host_name', 'cloud_graph_host_name', 'msgraph_host', 'aud', 'exp', 'iat', 'auth_time', 'acr', 'nonce', 'preferred_username', 'name', 'tid', 'ver', 'at_hash', 'c_hash', 'email'], 'kerberos_endpoint': 'https://login.microsoftonline.com/d48594cd-9d21-483f-a3f0-b10090b34d90/kerberos', 'mtls_endpoint_aliases': {'token_endpoint': 'https://mtlsauth.microsoft.com/d48594cd-9d21-483f-a3f0-b10090b34d90/oauth2/v2.0/token'}, 'tls_client_certificate_bound_access_tokens': True, 'tenant_region_scope': 'NA', 'cloud_instance_name': 'microsoftonline.com', 'cloud_graph_host_name': 'graph.windows.net', 'msgraph_host': 'graph.microsoft.com', 'rbac_url': 'https://pas.windows.net'}
+DEBUG: msal.application: Broker enabled? True
+DEBUG: cli.azure.cli.core.auth.credential_adaptor: CredentialAdaptor.get_token_info: scopes=('https://management.core.windows.net//.default',), options={}
+DEBUG: cli.azure.cli.core.auth.msal_credentials: UserCredential.acquire_token: scopes=['https://management.core.windows.net//.default'], claims_challenge=None, kwargs={}
+DEBUG: msal.application: Cache hit an AT
+DEBUG: msal.telemetry: Generate or reuse correlation_id: 9d8e8262-0f1b-4821-8c78-8072ee935ca4
+DEBUG: cli.azure.cli.core.sdk.policies: Request URL: 'https://management.azure.com/subscriptions/48377add-8ffb-4bd1-b3de-ccf39e2d7570/resourcegroups/GPU.LLM.RG/providers/Microsoft.Resources/deployments/main/validate?api-version=2025-04-01'
+DEBUG: cli.azure.cli.core.sdk.policies: Request method: 'POST'
+DEBUG: cli.azure.cli.core.sdk.policies: Request headers:
+DEBUG: cli.azure.cli.core.sdk.policies:     'Content-Type': 'application/json'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Content-Length': '9191'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Accept': 'application/json'
+DEBUG: cli.azure.cli.core.sdk.policies:     'x-ms-client-request-id': '33c69a59-d803-11f0-9195-906584caaa48'
+DEBUG: cli.azure.cli.core.sdk.policies:     'CommandName': 'deployment group create'
+DEBUG: cli.azure.cli.core.sdk.policies:     'ParameterSetName': '--resource-group --template-file --parameters --debug'
+DEBUG: cli.azure.cli.core.sdk.policies:     'User-Agent': 'AZURECLI/2.77.0 (MSI) azsdk-python-core/1.35.0 Python/3.13.7 (Windows-11-10.0.26200-SP0)'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Authorization': '*****'
+DEBUG: cli.azure.cli.core.sdk.policies: Request body:
+DEBUG: cli.azure.cli.core.sdk.policies: {"properties": {"template": "{\n  \"$schema\": \"https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#\",\n  \"contentVersion\": \"1.0.0.0\",\n  \"metadata\": {\n    \"_generator\": {\n      \"name\": \"bicep\",\n      \"version\": \"0.39.26.7824\",\n      \"templateHash\": \"1195381004407580634\"\n    }\n  },\n  \"parameters\": {\n    \"location\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"[resourceGroup().location]\",\n      \"metadata\": {\n        \"description\": \"Location for all resources\"\n      }\n    },\n    \"containerAppName\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"phi3-llm-app\",\n      \"metadata\": {\n        \"description\": \"Name of the Container App (legacy)\"\n      }\n    },\n    \"environmentName\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"phi3-env\",\n      \"metadata\": {\n        \"description\": \"Name of the Container Apps Environment (legacy)\"\n      }\n    },\n    \"containerapps_phi_3_gpu_name\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"[parameters('containerAppName')]\",\n      \"metadata\": {\n        \"description\": \"Name of the Phi-3 GPU Container App\"\n      }\n    },\n    \"managedEnvironments_me_gpullm_name\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"[parameters('environmentName')]\",\n      \"metadata\": {\n        \"description\": \"Name of the Container Apps managed environment\"\n      }\n    },\n    \"registries_jvllmcontainers_name\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"jvllmcontainers\",\n      \"metadata\": {\n        \"description\": \"Name of the Azure Container Registry\"\n      }\n    },\n    \"workspaces_workspacegpullmrg9013_name\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"workspacegpullmrg9013\",\n      \"metadata\": {\n        \"description\": \"Name of the Log Analytics workspace\"\n      }\n    },\n    \"containerImage\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"mcr.microsoft.com/placeholder:latest\",\n      \"metadata\": {\n        \"description\": \"Container image to deploy\"\n      }\n    },\n    \"cpuCores\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"4.0\",\n      \"metadata\": {\n        \"description\": \"CPU cores for the container\"\n      }\n    },\n    \"memorySize\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"16Gi\",\n      \"metadata\": {\n        \"description\": \"Memory for the container\"\n      }\n    },\n    \"gpuType\": {\n      \"type\": \"string\",\n      \"defaultValue\": \"nvidia-a100\",\n      \"metadata\": {\n        \"description\": \"GPU type - currently supports nvidia-a100\"\n      }\n    },\n    \"gpuCount\": {\n      \"type\": \"int\",\n      \"defaultValue\": 1,\n      \"metadata\": {\n        \"description\": \"Number of GPUs\"\n      }\n    },\n    \"minReplicas\": {\n      \"type\": \"int\",\n      \"defaultValue\": 0,\n      \"metadata\": {\n        \"description\": \"Minimum replicas\"\n      }\n    },\n    \"maxReplicas\": {\n      \"type\": \"int\",\n      \"defaultValue\": 1,\n      \"metadata\": {\n        \"description\": \"Maximum replicas\"\n      }\n    }\n  },\n  \"variables\": {\n    \"acrLoginServer\": \"[format('{0}.azurecr.io', parameters('registries_jvllmcontainers_name'))]\"\n  },\n  \"resources\": [\n    {\n      \"type\": \"Microsoft.OperationalInsights/workspaces\",\n      \"apiVersion\": \"2023-09-01\",\n      \"name\": \"[parameters('workspaces_workspacegpullmrg9013_name')]\",\n      \"location\": \"[parameters('location')]\",\n      \"properties\": {\n        \"sku\": {\n          \"name\": \"PerGB2018\"\n        },\n        \"retentionInDays\": 30\n      }\n    },\n    {\n      \"type\": \"Microsoft.ContainerRegistry/registries\",\n      \"apiVersion\": \"2023-07-01\",\n      \"name\": \"[parameters('registries_jvllmcontainers_name')]\",\n      \"location\": \"[parameters('location')]\",\n      \"sku\": {\n        \"name\": \"Standard\"\n      },\n      \"properties\": {\n        \"adminUserEnabled\": true\n      }\n    },\n    {\n      \"type\": \"Microsoft.App/managedEnvironments\",\n      \"apiVersion\": \"2024-03-01\",\n      \"name\": \"[parameters('managedEnvironments_me_gpullm_name')]\",\n      \"location\": \"[parameters('location')]\",\n      \"properties\": {\n        \"appLogsConfiguration\": {\n          \"destination\": \"log-analytics\",\n          \"logAnalyticsConfiguration\": {\n            \"customerId\": \"[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaces_workspacegpullmrg9013_name')), '2023-09-01').customerId]\",\n            \"sharedKey\": \"[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaces_workspacegpullmrg9013_name')), '2023-09-01').primarySharedKey]\"\n          }\n        },\n        \"zoneRedundant\": false,\n        \"workloadProfiles\": [\n          {\n            \"name\": \"Consumption-GPU-NC8as-T4\",\n            \"workloadProfileType\": \"Consumption-GPU-NC8as-T4\"\n          },\n          {\n            \"name\": \"Consumption-GPU-NC24-A100\",\n            \"workloadProfileType\": \"Consumption-GPU-NC24-A100\"\n          }\n        ]\n      },\n      \"dependsOn\": [\n        \"[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaces_workspacegpullmrg9013_name'))]\"\n      ]\n    },\n    {\n      \"type\": \"Microsoft.App/containerApps\",\n      \"apiVersion\": \"2024-03-01\",\n      \"name\": \"[parameters('containerapps_phi_3_gpu_name')]\",\n      \"location\": \"[parameters('location')]\",\n      \"identity\": {\n        \"type\": \"SystemAssigned\"\n      },\n      \"properties\": {\n        \"environmentId\": \"[resourceId('Microsoft.App/managedEnvironments', parameters('managedEnvironments_me_gpullm_name'))]\",\n        \"workloadProfileName\": \"Consumption-GPU-NC8as-T4\",\n        \"configuration\": {\n          \"activeRevisionsMode\": \"Single\",\n          \"ingress\": {\n            \"external\": true,\n            \"targetPort\": 5000,\n            \"transport\": \"auto\",\n            \"allowInsecure\": false\n          },\n          \"maxInactiveRevisions\": 100,\n          \"secrets\": [\n            {\n              \"name\": \"container-registry-password\",\n              \"value\": \"[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('registries_jvllmcontainers_name')), '2019-05-01').passwords[0].value]\"\n            }\n          ],\n          \"registries\": [\n            {\n              \"server\": \"[variables('acrLoginServer')]\",\n              \"username\": \"[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('registries_jvllmcontainers_name')), '2019-05-01').username]\",\n              \"passwordSecretRef\": \"container-registry-password\"\n            }\n          ]\n        },\n        \"template\": {\n          \"containers\": [\n            {\n              \"name\": \"phi-3-gpu\",\n              \"image\": \"[parameters('containerImage')]\",\n              \"resources\": {\n                \"cpu\": \"[json(parameters('cpuCores'))]\",\n                \"memory\": \"[parameters('memorySize')]\"\n              },\n              \"env\": [\n                {\n                  \"name\": \"GPU_TYPE\",\n                  \"value\": \"[parameters('gpuType')]\"\n                },\n                {\n                  \"name\": \"GPU_COUNT\",\n                  \"value\": \"[string(parameters('gpuCount'))]\"\n                }\n              ]\n            }\n          ],\n          \"scale\": {\n            \"minReplicas\": \"[parameters('minReplicas')]\",\n            \"maxReplicas\": \"[parameters('maxReplicas')]\"\n          }\n        }\n      },\n      \"dependsOn\": [\n        \"[resourceId('Microsoft.App/managedEnvironments', parameters('managedEnvironments_me_gpullm_name'))]\",\n        \"[resourceId('Microsoft.ContainerRegistry/registries', parameters('registries_jvllmcontainers_name'))]\"\n      ]\n    }\n  ],\n  \"outputs\": {\n    \"containerAppUrl\": {\n      \"type\": \"string\",\n      \"value\": \"[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', parameters('containerapps_phi_3_gpu_name')), '2024-03-01').configuration.ingress.fqdn)]\"\n    },\n    \"containerAppName\": {\n      \"type\": \"string\",\n      \"value\": \"[parameters('containerapps_phi_3_gpu_name')]\"\n    }\n  }\n}", "parameters": {"location": {"value": "westus3"}, "containerAppName": {"value": "phi-3-gpu"}, "environmentName": {"value": "me-gpullm"}, "containerapps_phi_3_gpu_name": {"value": "phi-3-gpu"}, "managedEnvironments_me_gpullm_name": {"value": "me-gpullm"}, "registries_jvllmcontainers_name": {"value": "jvllmcontainers"}, "workspaces_workspacegpullmrg9013_name": {"value": "workspacegpullmrg9013"}, "containerImage": {"value": "jvllmcontainers.azurecr.io/phi-3-gpu:latest"}, "cpuCores": {"value": "4.0"}, "memorySize": {"value": "8Gi"}, "gpuType": {"value": "nvidia-t4"}, "gpuCount": {"value": 1}, "minReplicas": {"value": 0}, "maxReplicas": {"value": 1}}, "mode": "Incremental"}}
+DEBUG: cli.azure.cli.command_modules.resource.custom: HTTP content is being overwritten to preserve template whitepace accurately. The request body logging may not accurately represent this.
+DEBUG: urllib3.connectionpool: Starting new HTTPS connection (1): management.azure.com:443
+DEBUG: urllib3.connectionpool: https://management.azure.com:443 "POST /subscriptions/48377add-8ffb-4bd1-b3de-ccf39e2d7570/resourcegroups/GPU.LLM.RG/providers/Microsoft.Resources/deployments/main/validate?api-version=2025-04-01 HTTP/1.1" 400 530
+DEBUG: cli.azure.cli.core.sdk.policies: Response status: 400
+DEBUG: cli.azure.cli.core.sdk.policies: Response headers:
+DEBUG: cli.azure.cli.core.sdk.policies:     'Cache-Control': 'no-cache'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Pragma': 'no-cache'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Content-Length': '530'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Content-Type': 'application/json; charset=utf-8'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Expires': '-1'
+DEBUG: cli.azure.cli.core.sdk.policies:     'x-ms-failure-cause': 'gateway'
+DEBUG: cli.azure.cli.core.sdk.policies:     'x-ms-ratelimit-remaining-subscription-writes': '199'
+DEBUG: cli.azure.cli.core.sdk.policies:     'x-ms-ratelimit-remaining-subscription-global-writes': '2999'
+DEBUG: cli.azure.cli.core.sdk.policies:     'x-ms-request-id': '504d6a6c-542a-435b-ac63-2a02e9b71dab'
+DEBUG: cli.azure.cli.core.sdk.policies:     'x-ms-correlation-request-id': '504d6a6c-542a-435b-ac63-2a02e9b71dab'
+DEBUG: cli.azure.cli.core.sdk.policies:     'x-ms-routing-request-id': 'WESTUS3:20251213T090757Z:504d6a6c-542a-435b-ac63-2a02e9b71dab'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+DEBUG: cli.azure.cli.core.sdk.policies:     'X-Content-Type-Options': 'nosniff'
+DEBUG: cli.azure.cli.core.sdk.policies:     'X-Cache': 'CONFIG_NOCACHE'
+DEBUG: cli.azure.cli.core.sdk.policies:     'X-MSEdge-Ref': 'Ref A: FF024731580741E79F7E8D4CA7F0607B Ref B: AMS231022012017 Ref C: 2025-12-13T09:07:56Z'
+DEBUG: cli.azure.cli.core.sdk.policies:     'Date': 'Sat, 13 Dec 2025 09:07:57 GMT'
+DEBUG: cli.azure.cli.core.sdk.policies: Response content:
+DEBUG: cli.azure.cli.core.sdk.policies: Body is streamable
+DEBUG: cli.azure.cli.core.azclierror: Traceback (most recent call last):
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/core/polling/base_polling.py", line 636, in initialize
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/core/polling/base_polling.py", line 156, in _raise_if_bad_http_status_and_method
+azure.core.polling.base_polling.BadStatus: Invalid return status 400 for 'POST' operation
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/resource/custom.py", line 650, in _deploy_arm_template_at_resource_group
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/core/tracing/decorator.py", line 119, in wrapper_use_tracer
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/mgmt/resource/deployments/operations/_deployments_operations.py", line 5755, in begin_validate
+  File "typing.py", line 1317, in __call__
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/core/polling/_poller.py", line 229, in __init__
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/core/polling/base_polling.py", line 641, in initialize
+azure.core.exceptions.HttpResponseError: (InvalidTemplateDeployment) The template deployment 'main' is not valid according to the validation procedure. The tracking id is '504d6a6c-542a-435b-ac63-2a02e9b71dab'. See inner errors for details.
+Code: InvalidTemplateDeployment
+Message: The template deployment 'main' is not valid according to the validation procedure. The tracking id is '504d6a6c-542a-435b-ac63-2a02e9b71dab'. See inner errors for details.
+Exception Details:	(ValidationForResourceFailed) Validation failed for a resource. Check 'Error.Details[0]' for more information.
+	Code: ValidationForResourceFailed
+	Message: Validation failed for a resource. Check 'Error.Details[0]' for more information.
+	Exception Details:	(WorkloadProfileNotFound) Workload Profile name 'Consumption-GPU-NC8as-T4' does not exist for the environment 'me-gpullm'.
+		Code: WorkloadProfileNotFound
+		Message: Workload Profile name 'Consumption-GPU-NC8as-T4' does not exist for the environment 'me-gpullm'.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 703, in _run_job
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 336, in __call__
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/command_operation.py", line 120, in handler
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/resource/custom.py", line 603, in deploy_arm_template_at_resource_group
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/resource/custom.py", line 652, in _deploy_arm_template_at_resource_group
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/resource/_utils.py", line 92, in _build_http_response_error_message
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\requests/models.py", line 926, in text
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\requests/models.py", line 897, in content
+RuntimeError: The content for this response was already consumed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/arm.py", line 109, in handle_template_based_exception
+AttributeError: 'RuntimeError' object has no attribute 'inner_exception'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\knack/cli.py", line 233, in invoke
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 666, in execute
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 734, in _run_jobs_serially
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 726, in _run_job
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/arm.py", line 114, in handle_template_based_exception
+knack.util.CLIError: The content for this response was already consumed
+
+ERROR: cli.azure.cli.core.azclierror: The content for this response was already consumed
+ERROR: az_command_data_logger: The content for this response was already consumed
+DEBUG: cli.knack.cli: Event: Cli.PostExecute [<function AzCliLogging.deinit_cmd_metadata_logging at 0x000002D21B39D3A0>]
+INFO: az_command_data_logger: exit code: 1
+INFO: cli.__main__: Command ran in 7.183 seconds (init: 0.497, invoke: 6.686)
+INFO: telemetry.main: Begin splitting cli events and extra events, total events: 1
+INFO: telemetry.client: Accumulated 0 events. Flush the clients.
+INFO: telemetry.main: Finish splitting cli events and extra events, cli events: 1
+INFO: telemetry.save: Save telemetry record of length 3951 in cache file under C:\Users\jovadker\.azure\telemetry\20251213100758142
+INFO: telemetry.main: Begin creating telemetry upload process.
+INFO: telemetry.process: Creating upload process: "C:\Program Files\Microsoft SDKs\Azure\CLI2\python.exe C:\Program Files\Microsoft SDKs\Azure\CLI2\Lib\site-packages\azure\cli\telemetry\__init__.pyc C:\Users\jovadker\.azure C:\Users\jovadker\.azure\telemetry\20251213100758142"
+INFO: telemetry.process: Return from creating process 43492
+INFO: telemetry.main: Finish creating telemetry upload process.

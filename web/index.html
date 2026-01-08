@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local gemma-3-4b-it</title>
+    <script src="/static/showdown.min.js"></script>
+    <script src="/static/ollama.js"></script>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+    <h1>🤖 gemma-3-4b-it</h1>
+    <div id="buildInfo" style="font-size: 0.8em; color: #666; margin-bottom: 10px;">Loading build info...</div>
+    <label for="question">Enter your question:</label>
+    <textarea name="" id="question" placeholder="Type your question here..."></textarea>
+    <label for="imageFile">Upload an image:</label>
+    <input type="file" id="imageFile" accept="image/*" />
+    <button onclick="run()">Ask!</button>
+    <button onclick="runstream()">Ask Stream!</button>
+    <button onclick="describeImage()">Describe Image</button>
+    <div id="answer">
+        
+    </div>
+    <script>
+        document.getElementById('question').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent the default action (new line in the textarea)
+                runstream();
+        }
+        });
+
+        // Load build info on page load
+        fetch('/buildinfo')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('buildInfo').textContent = 
+                    `Build: ${data.build_time} | Model: ${data.model} | Framework: ${data.framework}`;
+            })
+            .catch(error => {
+                document.getElementById('buildInfo').textContent = 'Build info unavailable';
+            });
+    </script>
+</body>
+</html>
