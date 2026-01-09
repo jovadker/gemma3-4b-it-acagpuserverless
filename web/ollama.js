@@ -1,9 +1,10 @@
 const converter = new showdown.Converter()
 
 let isBusy = false
-const MIN_SPINNER_MS = 1000
+const MIN_SPINNER_MS = 500
 let spinnerShownAtMs = 0
 let spinnerHideTimer = null
+let imagePreviewObjectUrl = null
 
 function getUi(){
     return {
@@ -12,12 +13,62 @@ function getUi(){
         answer: document.querySelector("#answer"),
         spinner: document.querySelector("#spinner"),
         statusText: document.querySelector("#statusText"),
+        imagePreview: document.querySelector("#imagePreview"),
+        imagePreviewImg: document.querySelector("#imagePreviewImg"),
+        imagePreviewName: document.querySelector("#imagePreviewName"),
         buttons: [
             document.querySelector("#btnAsk"),
             document.querySelector("#btnAskStream"),
             document.querySelector("#btnDescribeImage"),
         ].filter(Boolean),
     }
+}
+
+function clearImagePreview(){
+    const ui = getUi()
+    if (imagePreviewObjectUrl) {
+        try { URL.revokeObjectURL(imagePreviewObjectUrl) } catch { /* ignore */ }
+        imagePreviewObjectUrl = null
+    }
+    if (ui.imagePreviewImg) ui.imagePreviewImg.removeAttribute("src")
+    if (ui.imagePreviewName) ui.imagePreviewName.textContent = ""
+    if (ui.imagePreview) {
+        ui.imagePreview.classList.add("is-hidden")
+        ui.imagePreview.setAttribute("aria-hidden", "true")
+    }
+}
+
+function updateImagePreviewFromInput(){
+    const ui = getUi()
+    const fileInput = ui.imageFile
+    const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null
+
+    if (!file) {
+        clearImagePreview()
+        return
+    }
+
+    if (imagePreviewObjectUrl) {
+        try { URL.revokeObjectURL(imagePreviewObjectUrl) } catch { /* ignore */ }
+        imagePreviewObjectUrl = null
+    }
+
+    imagePreviewObjectUrl = URL.createObjectURL(file)
+    if (ui.imagePreviewImg) ui.imagePreviewImg.src = imagePreviewObjectUrl
+    if (ui.imagePreviewName) ui.imagePreviewName.textContent = file.name
+    if (ui.imagePreview) {
+        ui.imagePreview.classList.remove("is-hidden")
+        ui.imagePreview.setAttribute("aria-hidden", "false")
+    }
+}
+
+function initUiHandlers(){
+    const ui = getUi()
+    if (ui.imageFile) {
+        ui.imageFile.addEventListener("change", updateImagePreviewFromInput)
+    }
+    // Initialize preview state if the browser restores a chosen file.
+    updateImagePreviewFromInput()
 }
 
 function setBusy(busy, statusText = ""){
@@ -308,3 +359,5 @@ async function describeImage(){
 window.run = run
 window.runstream = runstream
 window.describeImage = describeImage
+
+document.addEventListener("DOMContentLoaded", initUiHandlers)

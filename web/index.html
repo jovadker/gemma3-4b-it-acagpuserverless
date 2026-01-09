@@ -26,6 +26,10 @@
             <div class="field">
                 <label for="imageFile">Image (optional)</label>
                 <input type="file" id="imageFile" accept="image/*" />
+                <div id="imagePreview" class="image-preview is-hidden" aria-hidden="true">
+                    <img id="imagePreviewImg" alt="Selected image preview" />
+                    <div id="imagePreviewName" class="image-preview-name"></div>
+                </div>
             </div>
 
             <div class="actions">
