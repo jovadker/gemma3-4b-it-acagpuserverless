@@ -25,10 +25,13 @@
 
             <div class="field">
                 <label for="imageFile">Image (optional)</label>
-                <input type="file" id="imageFile" accept="image/*" />
+                <input type="file" id="imageFile" accept="image/*" multiple />
                 <div id="imagePreview" class="image-preview is-hidden" aria-hidden="true">
-                    <img id="imagePreviewImg" alt="Selected image preview" />
-                    <div id="imagePreviewName" class="image-preview-name"></div>
+                    <div id="imagePreviewThumbs" class="image-preview-thumbs" aria-hidden="true"></div>
+                    <div class="image-preview-meta">
+                        <div id="imagePreviewCount" class="image-preview-name"></div>
+                        <div id="imagePreviewNames" class="image-preview-name"></div>
+                    </div>
                 </div>
             </div>
 

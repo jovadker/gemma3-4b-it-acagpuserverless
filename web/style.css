@@ -98,13 +98,24 @@ input[type="file"]:focus{
     display: none;
 }
 
-.image-preview img{
-    width: 64px;
-    height: 64px;
+
+.image-preview-thumbs{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.image-preview-thumbs img{
+    width: 48px;
+    height: 48px;
     border-radius: 10px;
     border: 1px solid var(--border);
     object-fit: cover;
     background: #fff;
+}
+
+.image-preview-meta{
+    min-width: 0;
 }
 
 .image-preview-name{

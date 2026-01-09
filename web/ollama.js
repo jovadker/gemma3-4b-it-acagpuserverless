@@ -4,7 +4,7 @@ let isBusy = false
 const MIN_SPINNER_MS = 500
 let spinnerShownAtMs = 0
 let spinnerHideTimer = null
-let imagePreviewObjectUrl = null
+let imagePreviewObjectUrls = []
 
 function getUi(){
     return {
@@ -14,8 +14,9 @@ function getUi(){
         spinner: document.querySelector("#spinner"),
         statusText: document.querySelector("#statusText"),
         imagePreview: document.querySelector("#imagePreview"),
-        imagePreviewImg: document.querySelector("#imagePreviewImg"),
-        imagePreviewName: document.querySelector("#imagePreviewName"),
+        imagePreviewThumbs: document.querySelector("#imagePreviewThumbs"),
+        imagePreviewCount: document.querySelector("#imagePreviewCount"),
+        imagePreviewNames: document.querySelector("#imagePreviewNames"),
         buttons: [
             document.querySelector("#btnAsk"),
             document.querySelector("#btnAskStream"),
@@ -26,12 +27,15 @@ function getUi(){
 
 function clearImagePreview(){
     const ui = getUi()
-    if (imagePreviewObjectUrl) {
-        try { URL.revokeObjectURL(imagePreviewObjectUrl) } catch { /* ignore */ }
-        imagePreviewObjectUrl = null
+
+    for (const url of imagePreviewObjectUrls) {
+        try { URL.revokeObjectURL(url) } catch { /* ignore */ }
     }
-    if (ui.imagePreviewImg) ui.imagePreviewImg.removeAttribute("src")
-    if (ui.imagePreviewName) ui.imagePreviewName.textContent = ""
+    imagePreviewObjectUrls = []
+
+    if (ui.imagePreviewThumbs) ui.imagePreviewThumbs.innerHTML = ""
+    if (ui.imagePreviewCount) ui.imagePreviewCount.textContent = ""
+    if (ui.imagePreviewNames) ui.imagePreviewNames.textContent = ""
     if (ui.imagePreview) {
         ui.imagePreview.classList.add("is-hidden")
         ui.imagePreview.setAttribute("aria-hidden", "true")
@@ -41,21 +45,37 @@ function clearImagePreview(){
 function updateImagePreviewFromInput(){
     const ui = getUi()
     const fileInput = ui.imageFile
-    const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null
 
-    if (!file) {
+    const files = fileInput && fileInput.files ? Array.from(fileInput.files) : []
+    if (files.length === 0) {
         clearImagePreview()
         return
     }
 
-    if (imagePreviewObjectUrl) {
-        try { URL.revokeObjectURL(imagePreviewObjectUrl) } catch { /* ignore */ }
-        imagePreviewObjectUrl = null
+    // Clear prior previews + URLs
+    clearImagePreview()
+
+    const maxThumbs = 5
+    const thumbs = files.slice(0, maxThumbs)
+    for (const file of thumbs) {
+        const url = URL.createObjectURL(file)
+        imagePreviewObjectUrls.push(url)
+        if (ui.imagePreviewThumbs) {
+            const img = document.createElement("img")
+            img.src = url
+            img.alt = file.name
+            ui.imagePreviewThumbs.appendChild(img)
+        }
     }
 
-    imagePreviewObjectUrl = URL.createObjectURL(file)
-    if (ui.imagePreviewImg) ui.imagePreviewImg.src = imagePreviewObjectUrl
-    if (ui.imagePreviewName) ui.imagePreviewName.textContent = file.name
+    if (ui.imagePreviewCount) {
+        ui.imagePreviewCount.textContent = files.length === 1 ? "1 image selected" : `${files.length} images selected`
+    }
+    if (ui.imagePreviewNames) {
+        // Keep it concise; the file input already shows the first name.
+        const names = files.map(f => f.name)
+        ui.imagePreviewNames.textContent = names.join(", ")
+    }
     if (ui.imagePreview) {
         ui.imagePreview.classList.remove("is-hidden")
         ui.imagePreview.setAttribute("aria-hidden", "false")
@@ -145,6 +165,11 @@ async function runstream(){
     const ui = getUi()
     const prompt = ui.question ? ui.question.value : ""
     const fileInput = ui.imageFile
+
+    // If multiple images are selected, do a batch (non-stream) describe.
+    if (fileInput && fileInput.files && fileInput.files.length > 1) {
+        return describeImage()
+    }
 
     setBusy(true, "Generating…")
     showSpinner(true)
@@ -326,12 +351,51 @@ async function describeImage(){
     setBusy(true, "Generating…")
     showSpinner(true)
 
-    const form = new FormData()
-    form.append("file", fileInput.files[0])
-    form.append("prompt", prompt || "Describe this image.")
-    form.append("max_new_tokens", "1024")
-
     try {
+        const files = Array.from(fileInput.files)
+        let markdown = ""
+
+        // Prefer a single backend request when analyzing multiple images.
+        if (files.length > 1) {
+            setBusy(true, `Generating 1/${files.length}…`)
+
+            const form = new FormData()
+            for (const file of files) form.append("files", file)
+            form.append("prompt", prompt || "Describe these images.")
+            form.append("max_new_tokens", "1024")
+
+            const response = await fetch("/describeimagebatch", {
+                method: "POST",
+                body: form,
+            })
+
+            if (!response.ok) {
+                const text = await response.text().catch(() => "")
+                throw new Error(`Batch describe failed: ${response.status} ${text}`)
+            }
+
+            const data = await response.json()
+            const results = Array.isArray(data.results) ? data.results : []
+            for (const r of results) {
+                const name = r && r.filename ? r.filename : "(unknown file)"
+                const header = `### ${name}\n\n`
+                if (r && r.error) {
+                    markdown += `${header}**Error:** ${r.error}\n\n`
+                } else {
+                    markdown += `${header}${(r && r.response) ? r.response : ""}\n\n`
+                }
+            }
+            renderMarkdownIntoAnswer(markdown)
+            return
+        }
+
+        // Single image: keep the existing /describeimage call.
+        const file = files[0]
+        const form = new FormData()
+        form.append("file", file)
+        form.append("prompt", prompt || "Describe this image.")
+        form.append("max_new_tokens", "1024")
+
         const response = await fetch("/describeimage", {
             method: "POST",
             body: form,
@@ -342,10 +406,9 @@ async function describeImage(){
             throw new Error(`Image describe failed: ${response.status} ${text}`)
         }
 
-        const data = await response.json()
-        const modelLine = data.model ? `**Model:** ${data.model}\n\n` : ""
-        const captionLine = data.caption ? `**Caption:** ${data.caption}\n\n` : ""
-        const entireResponse = `${modelLine}${captionLine}${data.response || ""}`
+        const single = await response.json()
+        const modelLine = single.model ? `**Model:** ${single.model}\n\n` : ""
+        const entireResponse = `${modelLine}${single.response || ""}`
         renderMarkdownIntoAnswer(entireResponse)
     } catch (err) {
         renderError(err && err.message ? err.message : String(err))

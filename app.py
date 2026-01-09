@@ -13,6 +13,7 @@ import asyncio
 import os
 from io import BytesIO
 import threading
+from typing import List
 
 app = FastAPI()
 # Set up logging
@@ -335,6 +336,96 @@ async def describe_image(
         raise
     except Exception as e:
         logger.exception("Failed to describe image")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/describeimagebatch")
+async def describe_image_batch(
+    files: List[UploadFile] = File(...),
+    prompt: str = Form("Describe these images."),
+    max_new_tokens: int = Form(512),
+):
+    """Upload multiple images and ask Gemma 3 (multimodal) to describe each using the same prompt."""
+
+    if files is None or len(files) == 0:
+        raise HTTPException(status_code=400, detail="No images uploaded")
+
+    try:
+        max_new_tokens = int(max_new_tokens)
+        if max_new_tokens < 1 or max_new_tokens > 2048:
+            raise HTTPException(status_code=400, detail="max_new_tokens must be between 1 and 2048")
+
+        import torch
+        from PIL import Image
+
+        processor, model, device = await _get_gemma_vision()
+
+        results = []
+        for upload in files:
+            try:
+                contents = await upload.read()
+                if not contents:
+                    raise HTTPException(status_code=400, detail=f"Empty image upload: {upload.filename}")
+
+                image = Image.open(BytesIO(contents)).convert("RGB")
+
+                messages = [
+                    {
+                        "role": "system",
+                        "content": [{"type": "text", "text": "You are a helpful assistant."}],
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "image", "image": image},
+                            {"type": "text", "text": prompt},
+                        ],
+                    },
+                ]
+
+                inputs = processor.apply_chat_template(
+                    messages,
+                    add_generation_prompt=True,
+                    tokenize=True,
+                    return_dict=True,
+                    return_tensors="pt",
+                )
+
+                if device == "cuda":
+                    inputs = inputs.to("cuda", dtype=torch.bfloat16)
+                else:
+                    inputs = inputs.to("cpu")
+
+                input_len = inputs["input_ids"].shape[-1]
+
+                with torch.inference_mode():
+                    generation = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+                    generation = generation[0][input_len:]
+
+                description = processor.decode(generation, skip_special_tokens=True)
+                results.append(
+                    {
+                        "filename": upload.filename,
+                        "response": description,
+                    }
+                )
+
+            except HTTPException as he:
+                results.append({"filename": getattr(upload, "filename", None), "error": str(he.detail)})
+            except Exception as e:
+                logger.exception("Failed to describe one image in batch")
+                results.append({"filename": getattr(upload, "filename", None), "error": str(e)})
+
+        return {
+            "results": results,
+            "model": "google/gemma-3-4b-it",
+            "max_new_tokens": max_new_tokens,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Failed to describe image batch")
         raise HTTPException(status_code=500, detail=str(e))
 
 
