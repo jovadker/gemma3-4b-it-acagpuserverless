@@ -1,6 +1,9 @@
 const converter = new showdown.Converter()
 
 let isBusy = false
+const MIN_SPINNER_MS = 1000
+let spinnerShownAtMs = 0
+let spinnerHideTimer = null
 
 function getUi(){
     return {
@@ -27,13 +30,46 @@ function setBusy(busy, statusText = ""){
     if (ui.question) ui.question.disabled = busy
     if (ui.imageFile) ui.imageFile.disabled = busy
 
-    if (ui.statusText) ui.statusText.textContent = statusText
+    // Only update status text when explicitly provided.
+    if (statusText !== undefined && statusText !== null) {
+        if (ui.statusText) ui.statusText.textContent = statusText
+    }
 }
 
 function showSpinner(show){
     const ui = getUi()
     if (!ui.spinner) return
-    ui.spinner.classList.toggle("is-active", Boolean(show))
+
+    if (show) {
+        if (spinnerHideTimer) {
+            clearTimeout(spinnerHideTimer)
+            spinnerHideTimer = null
+        }
+        spinnerShownAtMs = Date.now()
+        ui.spinner.classList.add("is-active")
+        return
+    }
+
+    const elapsed = Date.now() - spinnerShownAtMs
+    const remaining = Math.max(0, MIN_SPINNER_MS - elapsed)
+
+    const hide = () => {
+        spinnerHideTimer = null
+        ui.spinner.classList.remove("is-active")
+        // If generation already finished, clear the status text when the spinner disappears.
+        if (!isBusy && ui.statusText) ui.statusText.textContent = ""
+    }
+
+    if (spinnerHideTimer) {
+        clearTimeout(spinnerHideTimer)
+        spinnerHideTimer = null
+    }
+
+    if (remaining === 0) {
+        hide()
+    } else {
+        spinnerHideTimer = setTimeout(hide, remaining)
+    }
 }
 
 function renderMarkdownIntoAnswer(markdownText){
@@ -117,6 +153,9 @@ async function runstream(){
                 if (!line) continue
                 try {
                     const chunkJson = JSON.parse(line)
+                    if (chunkJson.error) {
+                        throw new Error(chunkJson.error)
+                    }
                     if (chunkJson.response) {
                         entireResponse += chunkJson.response
                         if (!gotFirstToken) {
@@ -136,12 +175,11 @@ async function runstream(){
 
         if (ui.question) ui.question.value = ""
     } catch (err) {
-        showSpinner(false)
-        setBusy(true, "")
         renderError(err && err.message ? err.message : String(err))
     } finally {
+        // Re-enable controls immediately, but keep status/spinner visible until spinner hides.
+        setBusy(false, null)
         showSpinner(false)
-        setBusy(false, "")
     }
 }
 
@@ -195,6 +233,9 @@ async function run(){
                 if (!line) continue
                 try {
                     const chunkJson = JSON.parse(line)
+                    if (chunkJson.error) {
+                        throw new Error(chunkJson.error)
+                    }
                     if (chunkJson.response) {
                         entireResponse += chunkJson.response
                         if (!gotFirstToken) {
@@ -212,12 +253,10 @@ async function run(){
         }
         if (ui.question) ui.question.value = ""
     } catch (err) {
-        showSpinner(false)
-        setBusy(true, "")
         renderError(err && err.message ? err.message : String(err))
     } finally {
+        setBusy(false, null)
         showSpinner(false)
-        setBusy(false, "")
     }
 }
 
@@ -260,8 +299,8 @@ async function describeImage(){
     } catch (err) {
         renderError(err && err.message ? err.message : String(err))
     } finally {
+        setBusy(false, null)
         showSpinner(false)
-        setBusy(false, "")
     }
 }
 
