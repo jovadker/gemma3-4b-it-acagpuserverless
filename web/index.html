@@ -9,17 +9,38 @@
     <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    <h1>🤖 gemma-3-4b-it</h1>
-    <div id="buildInfo" style="font-size: 0.8em; color: #666; margin-bottom: 10px;">Loading build info...</div>
-    <label for="question">Enter your question:</label>
-    <textarea name="" id="question" placeholder="Type your question here..."></textarea>
-    <label for="imageFile">Upload an image:</label>
-    <input type="file" id="imageFile" accept="image/*" />
-    <button onclick="run()">Ask!</button>
-    <button onclick="runstream()">Ask Stream!</button>
-    <button onclick="describeImage()">Describe Image</button>
-    <div id="answer">
-        
+    <div class="container">
+        <header class="header">
+            <div>
+                <h1 class="title">gemma-3-4b-it</h1>
+                <div id="buildInfo" class="subtle">Loading build info...</div>
+            </div>
+        </header>
+
+        <main class="panel">
+            <div class="field">
+                <label for="question">Prompt</label>
+                <textarea id="question" placeholder="Type your question here..."></textarea>
+            </div>
+
+            <div class="field">
+                <label for="imageFile">Image (optional)</label>
+                <input type="file" id="imageFile" accept="image/*" />
+            </div>
+
+            <div class="actions">
+                <button id="btnAsk" type="button" onclick="run()">Ask</button>
+                <button id="btnAskStream" type="button" onclick="runstream()">Ask (stream)</button>
+                <button id="btnDescribeImage" type="button" onclick="describeImage()">Describe image</button>
+
+                <div id="status" class="status" aria-live="polite">
+                    <span id="spinner" class="spinner" aria-hidden="true"></span>
+                    <span id="statusText" class="subtle"></span>
+                </div>
+            </div>
+
+            <div id="answer" class="answer"></div>
+        </main>
     </div>
     <script>
         document.getElementById('question').addEventListener('keydown', function(event) {
