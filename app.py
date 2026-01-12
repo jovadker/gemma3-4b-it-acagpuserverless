@@ -429,6 +429,135 @@ async def describe_image_batch(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/describeimagebatchstream")
+async def describe_image_batch_stream(
+    files: List[UploadFile] = File(...),
+    prompt: str = Form("Describe these images."),
+    max_new_tokens: int = Form(512),
+):
+    """Upload multiple images and stream one result per image as NDJSON.
+
+    This is sequential (one image at a time) but provides incremental results so
+    the UI can update as each image completes.
+    """
+
+    if files is None or len(files) == 0:
+        raise HTTPException(status_code=400, detail="No images uploaded")
+
+    try:
+        max_new_tokens = int(max_new_tokens)
+        if max_new_tokens < 1 or max_new_tokens > 2048:
+            raise HTTPException(status_code=400, detail="max_new_tokens must be between 1 and 2048")
+
+        import torch
+        from PIL import Image
+
+        processor, model, device = await _get_gemma_vision()
+
+        async def event_stream():
+            # Initial metadata
+            yield json.dumps(
+                {
+                    "type": "meta",
+                    "count": len(files),
+                    "model": "google/gemma-3-4b-it",
+                    "max_new_tokens": max_new_tokens,
+                }
+            ) + "\n"
+
+            for idx, upload in enumerate(files):
+                filename = getattr(upload, "filename", None)
+                yield json.dumps(
+                    {
+                        "type": "progress",
+                        "index": idx,
+                        "filename": filename,
+                        "status": "started",
+                    }
+                ) + "\n"
+
+                try:
+                    contents = await upload.read()
+                    if not contents:
+                        raise HTTPException(status_code=400, detail=f"Empty image upload: {filename}")
+
+                    image = Image.open(BytesIO(contents)).convert("RGB")
+
+                    messages = [
+                        {
+                            "role": "system",
+                            "content": [{"type": "text", "text": "You are a helpful assistant."}],
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "image", "image": image},
+                                {"type": "text", "text": prompt},
+                            ],
+                        },
+                    ]
+
+                    inputs = processor.apply_chat_template(
+                        messages,
+                        add_generation_prompt=True,
+                        tokenize=True,
+                        return_dict=True,
+                        return_tensors="pt",
+                    )
+
+                    if device == "cuda":
+                        inputs = inputs.to("cuda", dtype=torch.bfloat16)
+                    else:
+                        inputs = inputs.to("cpu")
+
+                    input_len = inputs["input_ids"].shape[-1]
+
+                    with torch.inference_mode():
+                        generation = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+                        generation = generation[0][input_len:]
+
+                    description = processor.decode(generation, skip_special_tokens=True)
+
+                    yield json.dumps(
+                        {
+                            "type": "result",
+                            "index": idx,
+                            "filename": filename,
+                            "response": description,
+                        }
+                    ) + "\n"
+
+                except HTTPException as he:
+                    yield json.dumps(
+                        {
+                            "type": "result",
+                            "index": idx,
+                            "filename": filename,
+                            "error": str(he.detail),
+                        }
+                    ) + "\n"
+                except Exception as e:
+                    logger.exception("Failed to describe one image in batch stream")
+                    yield json.dumps(
+                        {
+                            "type": "result",
+                            "index": idx,
+                            "filename": filename,
+                            "error": str(e),
+                        }
+                    ) + "\n"
+
+            yield json.dumps({"type": "done"}) + "\n"
+
+        return StreamingResponse(event_stream(), media_type="application/json")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Failed to stream image batch")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/describeimagestream")
 async def describe_image_stream(
     file: UploadFile = File(...),
@@ -489,7 +618,10 @@ async def describe_image_stream(
             skip_special_tokens=True,
         )
 
+        generation_error = None
+
         def _run_generation():
+            nonlocal generation_error
             try:
                 with torch.inference_mode():
                     model.generate(
@@ -499,7 +631,15 @@ async def describe_image_stream(
                         streamer=streamer,
                     )
             except Exception as e:
+                generation_error = str(e)
                 logger.error(f"Gemma vision generation error: {e}")
+            finally:
+                # Ensure the streamer terminates so the HTTP response can close.
+                try:
+                    if hasattr(streamer, "end"):
+                        streamer.end()
+                except Exception:
+                    pass
 
         threading.Thread(target=_run_generation, daemon=True).start()
 
@@ -518,6 +658,10 @@ async def describe_image_stream(
             except asyncio.CancelledError:
                 logging.info("Image streaming cancelled")
                 return
+
+            # If generation failed, emit an error record at the end.
+            if generation_error:
+                yield json.dumps({"error": generation_error}) + "\n"
 
         return StreamingResponse(token_generator(), media_type="application/json")
 

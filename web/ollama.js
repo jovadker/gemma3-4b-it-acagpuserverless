@@ -2,9 +2,14 @@ const converter = new showdown.Converter()
 
 let isBusy = false
 const MIN_SPINNER_MS = 500
+const MAX_NEW_TOKEN = 768
 let spinnerShownAtMs = 0
 let spinnerHideTimer = null
 let imagePreviewObjectUrls = []
+
+let statusBaseText = ""
+let statusTicker = null
+let statusTickerStartedAtMs = 0
 
 function getUi(){
     return {
@@ -21,6 +26,7 @@ function getUi(){
             document.querySelector("#btnAsk"),
             document.querySelector("#btnAskStream"),
             document.querySelector("#btnDescribeImage"),
+            document.querySelector("#btnDescribeImagesBatch"),
         ].filter(Boolean),
     }
 }
@@ -103,7 +109,36 @@ function setBusy(busy, statusText = ""){
 
     // Only update status text when explicitly provided.
     if (statusText !== undefined && statusText !== null) {
+        statusBaseText = String(statusText)
         if (ui.statusText) ui.statusText.textContent = statusText
+    }
+
+    if (!busy) {
+        stopStatusTicker()
+        statusBaseText = ""
+        // If the spinner is still showing due to MIN_SPINNER_MS, keep the text until it hides.
+        const spinnerActive = ui.spinner && ui.spinner.classList.contains("is-active")
+        if (!spinnerActive && ui.statusText) ui.statusText.textContent = ""
+    }
+}
+
+function startStatusTicker(){
+    stopStatusTicker()
+    const ui = getUi()
+    if (!ui.statusText) return
+    statusTickerStartedAtMs = Date.now()
+    statusTicker = setInterval(() => {
+        if (!isBusy) return
+        const elapsedSec = Math.max(0, Math.floor((Date.now() - statusTickerStartedAtMs) / 1000))
+        const base = statusBaseText || "Generating…"
+        ui.statusText.textContent = elapsedSec > 0 ? `${base} (${elapsedSec}s)` : base
+    }, 500)
+}
+
+function stopStatusTicker(){
+    if (statusTicker) {
+        clearInterval(statusTicker)
+        statusTicker = null
     }
 }
 
@@ -152,6 +187,31 @@ function renderMarkdownIntoAnswer(markdownText){
     if (ui.answer) ui.answer.innerHTML = html
 }
 
+// Converting Markdown->HTML for every streamed token is expensive.
+// Throttle rendering to keep the UI responsive.
+const RENDER_THROTTLE_MS = 80
+let renderTimer = null
+let latestMarkdownForRender = ""
+
+function renderMarkdownIntoAnswerThrottled(markdownText, flush = false){
+    latestMarkdownForRender = markdownText
+
+    if (flush) {
+        if (renderTimer) {
+            clearTimeout(renderTimer)
+            renderTimer = null
+        }
+        renderMarkdownIntoAnswer(latestMarkdownForRender)
+        return
+    }
+
+    if (renderTimer) return
+    renderTimer = setTimeout(() => {
+        renderTimer = null
+        renderMarkdownIntoAnswer(latestMarkdownForRender)
+    }, RENDER_THROTTLE_MS)
+}
+
 function renderError(message){
     const ui = getUi()
     if (!ui.answer) return
@@ -194,6 +254,7 @@ async function describeImagesStreamBatch(files, prompt){
 
     setBusy(true, `Generating 1/${files.length}…`)
     showSpinner(true)
+    startStatusTicker()
 
     const perFileText = new Array(files.length).fill("")
     let gotFirstToken = false
@@ -204,7 +265,7 @@ async function describeImagesStreamBatch(files, prompt){
             const name = files[i]?.name || `(image ${i + 1})`
             markdown += `### ${name}\n\n${perFileText[i] || ""}\n\n`
         }
-        renderMarkdownIntoAnswer(markdown)
+        renderMarkdownIntoAnswerThrottled(markdown)
     }
 
     try {
@@ -246,6 +307,16 @@ async function describeImagesStreamBatch(files, prompt){
             })
         }
 
+        // Ensure final render is not throttled away.
+        {
+            let finalMarkdown = ""
+            for (let i = 0; i < files.length; i++) {
+                const name = files[i]?.name || `(image ${i + 1})`
+                finalMarkdown += `### ${name}\n\n${perFileText[i] || ""}\n\n`
+            }
+            renderMarkdownIntoAnswerThrottled(finalMarkdown, true)
+        }
+
         if (ui.question) ui.question.value = ""
     } catch (err) {
         renderError(err && err.message ? err.message : String(err))
@@ -270,6 +341,7 @@ async function runstream(){
 
     setBusy(true, "Generating…")
     showSpinner(true)
+    startStatusTicker()
 
     let response
     try {
@@ -343,8 +415,10 @@ async function runstream(){
                 }
             }
 
-            renderMarkdownIntoAnswer(entireResponse)
+            renderMarkdownIntoAnswerThrottled(entireResponse)
         }
+
+        renderMarkdownIntoAnswerThrottled(entireResponse, true)
 
         if (ui.question) ui.question.value = ""
     } catch (err) {
@@ -364,6 +438,7 @@ async function run(){
 
     setBusy(true, "Generating…")
     showSpinner(true)
+    startStatusTicker()
 
     try {
         const response = await fetch("/predict", {
@@ -422,8 +497,9 @@ async function run(){
                 }
             }
 
-            renderMarkdownIntoAnswer(entireResponse)
+            renderMarkdownIntoAnswerThrottled(entireResponse)
         }
+        renderMarkdownIntoAnswerThrottled(entireResponse, true)
         if (ui.question) ui.question.value = ""
     } catch (err) {
         renderError(err && err.message ? err.message : String(err))
@@ -447,6 +523,7 @@ async function describeImage(){
 
     setBusy(true, "Generating…")
     showSpinner(true)
+    startStatusTicker()
 
     try {
         const files = Array.from(fileInput.files)
@@ -459,7 +536,8 @@ async function describeImage(){
             const form = new FormData()
             for (const file of files) form.append("files", file)
             form.append("prompt", prompt || "Describe these images.")
-            form.append("max_new_tokens", "1024")
+            // Batch (non-stream) should default smaller to keep latency reasonable.
+            form.append("max_new_tokens", MAX_NEW_TOKEN.toString())
 
             const response = await fetch("/describeimagebatch", {
                 method: "POST",
@@ -515,9 +593,101 @@ async function describeImage(){
     }
 }
 
+async function describeImagesBatch(){
+    if (isBusy) return
+
+    const ui = getUi()
+    const fileInput = ui.imageFile
+    const prompt = ui.question ? ui.question.value : ""
+
+    const files = fileInput && fileInput.files ? Array.from(fileInput.files) : []
+    if (files.length === 0) {
+        alert("Please choose one or more images first.")
+        return
+    }
+    if (files.length === 1) {
+        // Keep UX simple: the existing single-image button already does the right thing.
+        return describeImage()
+    }
+
+    setBusy(true, `Generating 1/${files.length}…`)
+    showSpinner(true)
+    startStatusTicker()
+
+    try {
+        const form = new FormData()
+        for (const file of files) form.append("files", file)
+        form.append("prompt", prompt || "Describe these images.")
+        // Keep batch latency reasonable; users can switch to streaming for longer outputs.
+        form.append("max_new_tokens", "512")
+
+        const response = await fetch("/describeimagebatchstream", {
+            method: "POST",
+            body: form,
+        })
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => "")
+            throw new Error(`Batch describe stream failed: ${response.status} ${text}`)
+        }
+
+        const perFileText = new Array(files.length).fill("")
+        const perFileName = files.map(f => f.name)
+
+        const rebuild = (flush = false) => {
+            let markdown = ""
+            for (let i = 0; i < perFileName.length; i++) {
+                const name = perFileName[i] || `(image ${i + 1})`
+                markdown += `### ${name}\n\n${perFileText[i] || ""}\n\n`
+            }
+            renderMarkdownIntoAnswerThrottled(markdown, flush)
+        }
+
+        await streamNdjson(response, async (evt) => {
+            if (!evt || !evt.type) return
+            if (evt.type === "meta") {
+                return
+            }
+            if (evt.type === "progress") {
+                if (typeof evt.index === "number") {
+                    setBusy(true, `Generating ${evt.index + 1}/${files.length}…`)
+                }
+                return
+            }
+            if (evt.type === "result") {
+                const idx = typeof evt.index === "number" ? evt.index : -1
+                if (idx >= 0 && idx < perFileText.length) {
+                    if (evt.filename && perFileName[idx] !== evt.filename) {
+                        perFileName[idx] = evt.filename
+                    }
+                    if (evt.error) {
+                        perFileText[idx] = `**Error:** ${evt.error}`
+                    } else {
+                        perFileText[idx] = evt.response || ""
+                    }
+                    rebuild()
+                }
+                return
+            }
+            if (evt.type === "done") {
+                rebuild(true)
+            }
+        })
+
+        rebuild(true)
+        if (ui.question) ui.question.value = ""
+    } catch (err) {
+        renderError(err && err.message ? err.message : String(err))
+    } finally {
+        setBusy(false, null)
+        showSpinner(false)
+    }
+}
+
 // Make functions available to inline HTML onclick handlers.
 window.run = run
 window.runstream = runstream
 window.describeImage = describeImage
+window.describeImagesBatch = describeImagesBatch
 
 document.addEventListener("DOMContentLoaded", initUiHandlers)
