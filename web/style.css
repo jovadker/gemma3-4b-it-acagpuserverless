@@ -61,6 +61,29 @@ label{
     color: var(--muted);
 }
 
+.control-row{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.control-row input,
+.control-row select{
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 14px;
+}
+
+.control-row input:focus,
+.control-row select:focus{
+    outline: none;
+    border-color: rgba(37,99,235,0.55);
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
+}
+
 #question{
     display: block;
     width: 100%;

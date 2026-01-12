@@ -47,7 +47,7 @@ az containerapp create --name $ContainerAppName `
     --registry-server $acrLoginServer `
     --ingress 'external' --target-port 5000 --workload-profile-name NC24-A100 `
     --env-vars CUDA_VISIBLE_DEVICES=0 NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility VLLM_GPU_MEMORY_UTILIZATION=0.85 VLLM_ENFORCE_EAGER=false `
-    --min-replicas 1 --max-replicas 2 --system-assigned
+    --min-replicas 1 --max-replicas 5 --system-assigned
 if ($LASTEXITCODE -ne 0) { throw "Container app creation failed" }
 
 # Assign AcrPull role to the container app's managed identity

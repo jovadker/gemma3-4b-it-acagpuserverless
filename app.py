@@ -90,6 +90,16 @@ except Exception as e:
 app.mount("/static", StaticFiles(directory="web"), name="static")
 
 
+@app.middleware("http")
+async def _add_instance_id_header(request, call_next):
+    response = await call_next(request)
+    # Useful for load testing / verifying scale-out. In Azure Container Apps this is typically unique per replica.
+    instance_id = os.environ.get("HOSTNAME") or os.environ.get("CONTAINER_APP_REVISION") or ""
+    if instance_id:
+        response.headers["x-instance-id"] = instance_id
+    return response
+
+
 async def _get_gemma_vision():
     """Lazy-load multimodal gemma-3-4b-it for image+text -> text generation."""
     global _vision_processor, _vision_model, _vision_device

@@ -47,6 +47,21 @@
                 </div>
             </div>
 
+            <div class="field">
+                <label>Scale test (from UI)</label>
+                <div class="control-row">
+                    <select id="scaleEndpoint" aria-label="Endpoint">
+                        <option value="/describeimagebatch">/describeimagebatch (sync)</option>
+                        <option value="/describeimagebatchstream">/describeimagebatchstream (stream)</option>
+                        <option value="/describeimage">/describeimage (single image)</option>
+                    </select>
+                    <input id="scaleRequests" type="number" min="1" max="500" value="10" aria-label="Requests" />
+                    <input id="scaleConcurrency" type="number" min="1" max="100" value="10" aria-label="Concurrency" />
+                    <button id="btnScaleTest" class="btn btn-secondary" type="button" onclick="runScaleTest()">Run scale test</button>
+                </div>
+                <div class="subtle">Sends parallel requests using the selected image(s) and reports distribution via response header <code>x-instance-id</code>.</div>
+            </div>
+
             <div id="answer" class="answer"></div>
         </main>
     </div>

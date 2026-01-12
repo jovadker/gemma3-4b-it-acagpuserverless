@@ -18,6 +18,9 @@ function getUi(){
         answer: document.querySelector("#answer"),
         spinner: document.querySelector("#spinner"),
         statusText: document.querySelector("#statusText"),
+        scaleEndpoint: document.querySelector("#scaleEndpoint"),
+        scaleRequests: document.querySelector("#scaleRequests"),
+        scaleConcurrency: document.querySelector("#scaleConcurrency"),
         imagePreview: document.querySelector("#imagePreview"),
         imagePreviewThumbs: document.querySelector("#imagePreviewThumbs"),
         imagePreviewCount: document.querySelector("#imagePreviewCount"),
@@ -27,7 +30,170 @@ function getUi(){
             document.querySelector("#btnAskStream"),
             document.querySelector("#btnDescribeImage"),
             document.querySelector("#btnDescribeImagesBatch"),
+            document.querySelector("#btnScaleTest"),
         ].filter(Boolean),
+    }
+}
+
+function _pct(values, p){
+    if (!values || values.length === 0) return 0
+    const s = [...values].sort((a, b) => a - b)
+    const k = Math.max(0, Math.min(s.length - 1, Math.round((s.length - 1) * p)))
+    return s[k]
+}
+
+async function _consumeStreamToEnd(response){
+    // Drain a streaming endpoint so the server can finish the request.
+    await streamNdjson(response, async () => {})
+}
+
+async function runScaleTest(){
+    if (isBusy) return
+
+    const ui = getUi()
+    const fileInput = ui.imageFile
+    const files = fileInput && fileInput.files ? Array.from(fileInput.files) : []
+
+    if (files.length === 0) {
+        alert("Please choose one or more images first.")
+        return
+    }
+
+    const endpoint = ui.scaleEndpoint ? ui.scaleEndpoint.value : "/describeimagebatch"
+    const totalRequests = ui.scaleRequests ? parseInt(ui.scaleRequests.value || "10", 10) : 10
+    const concurrency = ui.scaleConcurrency ? parseInt(ui.scaleConcurrency.value || "10", 10) : 10
+
+    const N = Number.isFinite(totalRequests) ? Math.max(1, Math.min(500, totalRequests)) : 10
+    const C = Number.isFinite(concurrency) ? Math.max(1, Math.min(100, concurrency)) : 10
+
+    const prompt = ui.question ? ui.question.value : ""
+
+    setBusy(true, `Scale test: ${N} req @ ${C} conc…`)
+    showSpinner(true)
+    startStatusTicker()
+
+    const semaphore = { count: C }
+    const queue = []
+    const take = async () => {
+        while (semaphore.count <= 0) {
+            await new Promise(r => queue.push(r))
+        }
+        semaphore.count -= 1
+    }
+    const give = () => {
+        semaphore.count += 1
+        const next = queue.shift()
+        if (next) next()
+    }
+
+    const nowMs = () => (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()
+
+    try {
+        const results = new Array(N).fill(null)
+        const startedAll = nowMs()
+
+        const one = async (i) => {
+            await take()
+            try {
+                const started = nowMs()
+
+                const form = new FormData()
+                const maxTokens = "128"
+
+                if (endpoint === "/describeimage") {
+                    form.append("file", files[0])
+                    form.append("prompt", prompt || "Describe this image.")
+                    form.append("max_new_tokens", maxTokens)
+                } else {
+                    for (const f of files) form.append("files", f)
+                    form.append("prompt", prompt || "Describe these images.")
+                    form.append("max_new_tokens", maxTokens)
+                }
+
+                const resp = await fetch(endpoint, { method: "POST", body: form })
+                const instanceId = resp.headers.get("x-instance-id") || "(unknown)"
+
+                if (!resp.ok) {
+                    const text = await resp.text().catch(() => "")
+                    results[i] = {
+                        ok: false,
+                        ms: Math.max(0, Math.round(nowMs() - started)),
+                        status: resp.status,
+                        instanceId,
+                        error: (text || "").slice(0, 300),
+                    }
+                    return
+                }
+
+                if (endpoint === "/describeimagebatchstream") {
+                    await _consumeStreamToEnd(resp)
+                } else {
+                    await resp.json().catch(() => null)
+                }
+
+                results[i] = {
+                    ok: true,
+                    ms: Math.max(0, Math.round(nowMs() - started)),
+                    status: resp.status,
+                    instanceId,
+                }
+            } catch (e) {
+                results[i] = {
+                    ok: false,
+                    ms: 0,
+                    status: 0,
+                    instanceId: "(unknown)",
+                    error: e && e.message ? e.message : String(e),
+                }
+            } finally {
+                give()
+            }
+        }
+
+        await Promise.all(Array.from({ length: N }, (_, i) => one(i)))
+        const totalMs = Math.max(0, Math.round(nowMs() - startedAll))
+
+        const ok = results.filter(r => r && r.ok)
+        const failed = results.filter(r => r && !r.ok)
+        const lats = results.map(r => (r ? r.ms : 0)).filter(ms => ms > 0)
+
+        const byInstance = new Map()
+        for (const r of ok) {
+            const key = r.instanceId || "(unknown)"
+            byInstance.set(key, (byInstance.get(key) || 0) + 1)
+        }
+
+        let md = `## ACA scale test\n\n`
+        md += `**Endpoint:** ${endpoint}\n\n`
+        md += `**Requests:** ${N}  **Concurrency:** ${C}  **Images/request:** ${files.length}\n\n`
+        md += `**Succeeded:** ${ok.length}  **Failed:** ${failed.length}  **Total:** ${totalMs}ms\n\n`
+
+        if (lats.length > 0) {
+            md += `**Latency (ms):** min ${Math.min(...lats)} | p50 ${_pct(lats, 0.50)} | p90 ${_pct(lats, 0.90)} | p99 ${_pct(lats, 0.99)} | max ${Math.max(...lats)}\n\n`
+        }
+
+        md += `### Instances (from x-instance-id)\n\n`
+        md += `| instance | ok requests |\n|:--|--:|\n`
+        for (const [instance, count] of [...byInstance.entries()].sort((a, b) => b[1] - a[1])) {
+            md += `| ${instance} | ${count} |\n`
+        }
+
+        if (failed.length > 0) {
+            md += `\n### Failures\n\n`
+            md += `| # | status | instance | error |\n|---:|---:|:--|:--|\n`
+            for (let i = 0; i < failed.length; i++) {
+                const r = failed[i]
+                const err = String(r.error || "").replace(/\r?\n/g, " ").trim()
+                md += `| ${i + 1} | ${r.status || 0} | ${r.instanceId || "(unknown)"} | ${err} |\n`
+            }
+        }
+
+        renderMarkdownIntoAnswer(md)
+    } catch (err) {
+        renderError(err && err.message ? err.message : String(err))
+    } finally {
+        setBusy(false, "")
+        showSpinner(false)
     }
 }
 
@@ -116,9 +282,8 @@ function setBusy(busy, statusText = ""){
     if (!busy) {
         stopStatusTicker()
         statusBaseText = ""
-        // If the spinner is still showing due to MIN_SPINNER_MS, keep the text until it hides.
-        const spinnerActive = ui.spinner && ui.spinner.classList.contains("is-active")
-        if (!spinnerActive && ui.statusText) ui.statusText.textContent = ""
+        // Always clear status when generation finishes.
+        if (ui.statusText) ui.statusText.textContent = ""
     }
 }
 
@@ -321,7 +486,7 @@ async function describeImagesStreamBatch(files, prompt){
     } catch (err) {
         renderError(err && err.message ? err.message : String(err))
     } finally {
-        setBusy(false, null)
+        setBusy(false, "")
         showSpinner(false)
     }
 }
@@ -425,7 +590,7 @@ async function runstream(){
         renderError(err && err.message ? err.message : String(err))
     } finally {
         // Re-enable controls immediately, but keep status/spinner visible until spinner hides.
-        setBusy(false, null)
+        setBusy(false, "")
         showSpinner(false)
     }
 }
@@ -504,7 +669,7 @@ async function run(){
     } catch (err) {
         renderError(err && err.message ? err.message : String(err))
     } finally {
-        setBusy(false, null)
+        setBusy(false, "")
         showSpinner(false)
     }
 }
@@ -588,7 +753,7 @@ async function describeImage(){
     } catch (err) {
         renderError(err && err.message ? err.message : String(err))
     } finally {
-        setBusy(false, null)
+        setBusy(false, "")
         showSpinner(false)
     }
 }
@@ -679,7 +844,7 @@ async function describeImagesBatch(){
     } catch (err) {
         renderError(err && err.message ? err.message : String(err))
     } finally {
-        setBusy(false, null)
+        setBusy(false, "")
         showSpinner(false)
     }
 }
@@ -689,5 +854,6 @@ window.run = run
 window.runstream = runstream
 window.describeImage = describeImage
 window.describeImagesBatch = describeImagesBatch
+window.runScaleTest = runScaleTest
 
 document.addEventListener("DOMContentLoaded", initUiHandlers)
