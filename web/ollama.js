@@ -159,6 +159,102 @@ function renderError(message){
     ui.answer.textContent = safe
 }
 
+async function streamNdjson(response, onJson){
+    if (!response.body) throw new Error("No response body")
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+
+    let buffer = ""
+    while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split(/\r?\n/)
+        buffer = lines.pop() ?? ""
+
+        for (let line of lines) {
+            line = line.trim()
+            if (!line) continue
+            if (line.startsWith("data:")) line = line.slice("data:".length).trim()
+            if (!line) continue
+            try {
+                const json = JSON.parse(line)
+                await onJson(json)
+            } catch (e) {
+                // Ignore malformed partials; they will be retried when buffer completes.
+                console.error("Failed to parse JSON line:", line, e)
+            }
+        }
+    }
+}
+
+async function describeImagesStreamBatch(files, prompt){
+    const ui = getUi()
+
+    setBusy(true, `Generating 1/${files.length}…`)
+    showSpinner(true)
+
+    const perFileText = new Array(files.length).fill("")
+    let gotFirstToken = false
+
+    const rebuildMarkdown = () => {
+        let markdown = ""
+        for (let i = 0; i < files.length; i++) {
+            const name = files[i]?.name || `(image ${i + 1})`
+            markdown += `### ${name}\n\n${perFileText[i] || ""}\n\n`
+        }
+        renderMarkdownIntoAnswer(markdown)
+    }
+
+    try {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i]
+            setBusy(true, `Generating ${i + 1}/${files.length}…`)
+
+            const form = new FormData()
+            form.append("file", file)
+            form.append("prompt", prompt || "Describe this image.")
+            form.append("max_new_tokens", "1024")
+
+            const response = await fetch("/describeimagestream", {
+                method: "POST",
+                body: form,
+            })
+
+            if (!response.ok) {
+                const text = await response.text().catch(() => "")
+                perFileText[i] = `**Error:** ${response.status} ${text}`
+                rebuildMarkdown()
+                continue
+            }
+
+            await streamNdjson(response, async (chunkJson) => {
+                if (chunkJson.error) {
+                    perFileText[i] += `\n\n**Error:** ${chunkJson.error}`
+                    rebuildMarkdown()
+                    return
+                }
+                if (chunkJson.response) {
+                    perFileText[i] += chunkJson.response
+                    if (!gotFirstToken) {
+                        gotFirstToken = true
+                        showSpinner(false)
+                    }
+                    rebuildMarkdown()
+                }
+            })
+        }
+
+        if (ui.question) ui.question.value = ""
+    } catch (err) {
+        renderError(err && err.message ? err.message : String(err))
+    } finally {
+        setBusy(false, null)
+        showSpinner(false)
+    }
+}
+
 async function runstream(){
     if (isBusy) return
 
@@ -166,9 +262,10 @@ async function runstream(){
     const prompt = ui.question ? ui.question.value : ""
     const fileInput = ui.imageFile
 
-    // If multiple images are selected, do a batch (non-stream) describe.
+    // If multiple images are selected, stream each image sequentially.
     if (fileInput && fileInput.files && fileInput.files.length > 1) {
-        return describeImage()
+        const files = Array.from(fileInput.files)
+        return describeImagesStreamBatch(files, prompt)
     }
 
     setBusy(true, "Generating…")
