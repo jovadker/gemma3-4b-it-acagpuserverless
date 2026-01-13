@@ -2,14 +2,33 @@
 
 This repo runs a FastAPI service backed by GPU-enabled inference. The container image is built from [dockerfile](dockerfile) and downloads the gemma-3-4b-it model during the image build.
 
+## ACA GPU Serverless (A100) notes
+
+This repo targets **Azure Container Apps (ACA) GPU Serverless** using an **NVIDIA A100** workload profile (example used here: `NC24-A100`).
+
+Hardware characteristics you should expect for the **A100 serverless GPU host**:
+
+- **CPU / RAM (host capacity)**: up to **24 vCores** and **220 GB** memory
+- **GPU memory**: **80 GB HBM2/HBM2e** per GPU
+- **GPU count**: up to **4 GPUs** available (profile/SKU/region dependent)
+
+Important: your **container** still requests its own CPU/memory in the Container App definition (see `--cpu/--memory` in CLI and `cpuCores`/`memorySize` in Bicep). The host capacity above reflects the underlying GPU server class.
+
 ## What gets deployed
 
 - **HTTP server**: `uvicorn app:app --port 5000`
 - **Endpoints**:
   - `GET /` serves the UI from `web/`
   - `GET /health` health check
+  - `GET /buildinfo` build metadata (model + framework)
   - `POST /predict` non-streaming inference
   - `POST /predictstream` streaming inference
+  - `POST /describeimage` single image -> JSON
+  - `POST /describeimagestream` single image -> streaming
+  - `POST /describeimagebatch` multiple images -> JSON
+  - `POST /describeimagebatchstream` multiple images -> streaming
+
+The service also adds an `x-instance-id` response header (based on `HOSTNAME` / `CONTAINER_APP_REVISION`) which is useful for scale testing and verifying replica distribution.
 
 ## Prerequisites
 
@@ -32,6 +51,25 @@ Run it from PowerShell:
 ```powershell
 ./deployment.ps1
 ```
+
+### Required: set `HF_TOKEN` (HuggingFace)
+
+The container build downloads `google/gemma-3-4b-it` from HuggingFace during `az acr build`. If you do not provide a HuggingFace token, the build can fail for gated models.
+
+Before running [deployment.ps1](deployment.ps1):
+
+1. Register (or log in) at https://huggingface.co
+2. Visit the model page: https://huggingface.co/google/gemma-3-4b-it
+3. Accept the model’s terms and conditions on the HuggingFace portal
+4. Create an **Access Token** in your HuggingFace account settings
+5. Set it in your PowerShell session:
+
+```powershell
+$env:HF_TOKEN = "<your_huggingface_token>"
+./deployment.ps1
+```
+
+Security note: treat `HF_TOKEN` like a password. Don’t commit it to git or paste it into logs.
 
 Before running, review/edit the hard-coded names inside the script (resource group, ACR name, environment name, app name, workload profile name).
 
@@ -117,6 +155,8 @@ The image build downloads the model (`google/gemma-3-4b-it`) during `docker buil
 ### Cold starts are slow
 
 The model is loaded at startup in [app.py](app.py). Keep `minReplicas` at 1 if you need consistent latency.
+
+If you scale above 1 replica, be aware each replica needs time to download/load model weights and warm up.
 
 ## References
 

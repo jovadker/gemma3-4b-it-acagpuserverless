@@ -1,82 +1,65 @@
 # 🤖 gemma-3-4b-it GPU-Accelerated LLM Hosting
 
-A production-ready solution for hosting Large Language Models (LLMs) with GPU acceleration on Azure Container Apps. This project demonstrates how to deploy Google's gemma-3-4b-it model downloaded from HuggingFace. It can also be adapted to host custom or fine-tuned models.
+Production-ready hosting for **Google's `google/gemma-3-4b-it `[HuggingFace](https://huggingface.co/google/gemma-3-4b-it)** on **Azure Container Apps (ACA) GPU Serverless** (NVIDIA A100-class GPUs) with [vLLM](https://docs.vllm.ai/en/latest/) and Transformers. Includes a FastAPI backend, streaming responses, and a simple web UI.
+
+![ACA image-to-text](ACA-image-to-text.jpg)
 
 ## 🎯 Overview
 
-This repository provides a complete stack for serving LLMs with:
+This repository provides a complete stack for serving Gemma 3 with:
 - **FastAPI backend** with streaming response support
-- **GPU-accelerated inference** using llama-cpp-python with CUDA
+- **GPU-accelerated inference** using **vLLM** (text endpoints) and **Transformers** (multimodal image+text endpoints)
 - **Modern web interface** with real-time streaming responses
-- **Azure Container Apps deployment** with GPU workload profiles
-- **Docker containerization** with NVIDIA CUDA support
+- **Azure Container Apps deployment** with GPU workload profiles (A100)
+- **Docker containerization** with NVIDIA CUDA base images
 
 ## ✨ Key Features
 
-- 🚀 **GPU Acceleration**: Utilizes NVIDIA GPUs for fast inference
-- 📦 **HuggingFace Integration**: Downloads models directly from HuggingFace Hub
-- 🔄 **Streaming Responses**: Real-time token-by-token response generation
-- 🎨 **Clean Web UI**: Markdown rendering with syntax highlighting
-- ☁️ **Azure Deployment**: Infrastructure as Code with Bicep templates
-- 🐳 **Docker Ready**: Multi-stage build for optimized container images
+- 🚀 **GPU Acceleration**: Runs on ACA GPU Serverless (A100)
+- 📦 **HuggingFace Integration**: Downloads `google/gemma-3-4b-it` during image build
+- 🔄 **Streaming Responses**: Token streaming over NDJSON (`/predictstream`)
+- 🖼️ **Image + Text**: Single and batch image description endpoints
+- 📈 **Scale Testing**: UI can run parallel requests and report replica distribution via `x-instance-id`
+- ☁️ **Azure Deployment**: Infrastructure as Code with Bicep templates + a PowerShell deployment script
 
 ## 🧠 Model Information
 
-This project uses **Google gemma-3-4b-it Instruct** (quantized GGUF format) downloaded from HuggingFace:
-- Model: `bartowski/gemma-3-4b-it-GGUF`
-- Format: Quantized Q4_K_M GGUF for efficient inference
-- Context: 8K tokens
-- Size: ~2.7 GB
+This project uses **Google Gemma 3 4B Instruct** from HuggingFace:
+- Model: `google/gemma-3-4b-it`
+- Typical access requirement: you must accept the model terms on HuggingFace before downloading
 
-### 🔧 Using Your Own Model
+## ☁️ Azure Container Apps GPU (A100) Notes
 
-**This approach works with any GGUF model from HuggingFace or your own fine-tuned models!**
+This repo is designed to run on **Azure Container Apps GPU Serverless** using an **NVIDIA A100** workload profile (example in this repo: `NC24-A100`).
 
-To use a different model:
+Hardware characteristics you should expect for the **A100 serverless GPU host**:
+- **CPU / RAM (host capacity)**: up to **24 vCores** and **220 GB** memory
+- **GPU memory**: **80 GB HBM2/HBM2e** per GPU
+- **GPU count**: up to **4 GPUs** available (profile/SKU/region dependent)
 
-1. **Update the Dockerfile** (line 30):
-   ```dockerfile
-   RUN hf download <your-org>/<your-model> <model-file.gguf> --local-dir .
-   ```
-
-2. **Update app.py** (line 37) with your model filename:
-   ```python
-   llm = Llama(
-       model_path="./your-model-file.gguf",
-       # ... other parameters
-   )
-   ```
-
-3. **For private models**, pass your HuggingFace token during build:
-   ```bash
-   docker build --secret id=hf_token,src=hf_token.txt -t your-llm .
-   ```
+Important: your **container** still requests its own CPU/memory in the Container App definition (see `cpuCores` / `memorySize` parameters). The host capacity above reflects the underlying GPU server class.
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐
-│   Web Browser   │
-│  (index.html)   │
-└────────┬────────┘
-         │ HTTP
-         ▼
-┌─────────────────┐
-│  FastAPI Server │
-│    (app.py)     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ llama-cpp-python│
-│  (CUDA-enabled) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   NVIDIA GPU    │
-│  (A100/T4/etc)  │
-└─────────────────┘
+┌─────────────────────┐
+│     Web Browser     │
+│   web/index.html    │
+└─────────┬───────────┘
+          │ HTTP
+          ▼
+┌─────────────────────┐
+│     FastAPI API     │
+│       app.py        │
+├─────────┬───────────┤
+│  Text   │  Vision    │
+│  vLLM   │ Transformers│
+└─────────┴───────────┘
+          │ CUDA
+          ▼
+┌─────────────────────┐
+│ NVIDIA A100 GPU(s)  │
+└─────────────────────┘
 ```
 
 ## 🚀 Quick Start
@@ -91,7 +74,12 @@ To use a different model:
 
 Without accepting the terms, you'll get access errors when attempting to download the model.
 
-### Local Development (Without GPU)
+### Local Development
+
+This project is primarily optimized for running **in the container**, where the model is downloaded to `/app/models/gemma-3-4b-it` during the Docker build. If you want to run locally without Docker, you can:
+
+- Use Docker Desktop (recommended), or
+- Modify the model path in `app.py` to point at your local model directory.
 
 ```bash
 # Install dependencies
@@ -101,7 +89,7 @@ pip install -r requirements.txt
 hf auth login
 
 # Download the model
-hf download google/gemma-3-4b-it --local-dir .
+hf download google/gemma-3-4b-it --local-dir ./models/gemma-3-4b-it
 
 # Run the server
 uvicorn app:app --reload --host 0.0.0.0 --port 5000
@@ -127,7 +115,23 @@ docker run --gpus all -p 5000:5000 gemma-3-4b-gpu
 - Azure CLI installed and logged in
 - Azure Container Registry (ACR)
 
-### Deployment Steps
+HuggingFace (required to download the model during the container build):
+- Register / log in at https://huggingface.co
+- Visit https://huggingface.co/google/gemma-3-4b-it and accept the terms
+- Create an access token and set it as `HF_TOKEN`
+
+### Recommended: run the deployment script
+
+The canonical deployment flow is [deployment.ps1](deployment.ps1). It deploys infra (Bicep), builds the image in ACR, recreates the Container App with the GPU workload profile, and assigns `AcrPull`.
+
+Before running it, set your HuggingFace token (used during `az acr build`):
+
+```powershell
+$env:HF_TOKEN = "<your_huggingface_token>"
+./deployment.ps1
+```
+
+### Deployment Steps (high level)
 
 1. **Build and push Docker image**:
    ```powershell
@@ -182,7 +186,6 @@ gemma-3-4b/
 │   └── showdown.min.js    # Markdown renderer
 └── infra/
     ├── main.bicep         # Azure infrastructure
-    ├── main.json          # ARM template
     └── main.parameters.json
 ```
 
@@ -194,8 +197,23 @@ Generate a complete response
 ### `POST /predictstream`
 Generate streaming response (recommended)
 
+### `POST /describeimage`
+Describe a single image (multipart form upload)
+
+### `POST /describeimagestream`
+Describe a single image with streaming output
+
+### `POST /describeimagebatch`
+Describe multiple images in one request
+
+### `POST /describeimagebatchstream`
+Describe multiple images with streaming output
+
 ### `GET /health`
 Health check endpoint
+
+### `GET /buildinfo`
+Build metadata (includes model + framework)
 
 ### `GET /static/index.html`
 Web interface
@@ -213,22 +231,33 @@ Web interface
 - `NVIDIA_VISIBLE_DEVICES`: NVIDIA device visibility
 - `NVIDIA_DRIVER_CAPABILITIES`: Driver capabilities (compute, utility)
 
-## 📊 Performance
+vLLM tuning (read by `app.py`):
+- `VLLM_GPU_MEMORY_UTILIZATION` (default `0.6`)
+- `VLLM_MAX_MODEL_LEN` (default `4096`)
+- `VLLM_MAX_TOKENS` (default `2048`)
+- `VLLM_ENFORCE_EAGER` (default `true`)
 
-- **GPU Layers**: All layers offloaded to GPU (`n_gpu_layers=-1`)
-- **Batch Size**: Optimized for GPU (`n_batch=512`)
-- **Memory Lock**: Model locked in memory for faster inference
-- **Context Window**: 8192 tokens
+Misc:
+- `BUILD_TIME` (shown in the UI)
+- `GEMMA_MODEL_PATH` (used by the Transformers vision loader; defaults to `/app/models/gemma-3-4b-it`)
+
+## 📊 Performance & Scaling Notes
+
+- **Cold starts**: first request after scale-to-zero (or replica spin-up) will be slower; keep `minReplicas` > 0 if you need consistent latency.
+- **Scale testing**: the UI can run parallel requests and shows which replica served each request using the `x-instance-id` header.
+- **Multi-GPU**: the code is configured with `tensor_parallel_size=1` today. If you deploy a profile with multiple GPUs, you can increase tensor parallelism (and validate memory/throughput) accordingly.
+
+### ACA scaling test
+
+![ACA scaling test](ACA%20scaling%20test.jpg)
 
 ## 🛠️ Customization
 
-### Adjusting Model Parameters
+### Using a Different HuggingFace Model
 
-Edit `app.py` to modify:
-- `n_ctx`: Context window size
-- `n_gpu_layers`: Number of layers on GPU
-- `n_batch`: Batch size for processing
-- `chat_format`: Chat template format
+1. Update [dockerfile](dockerfile) to download your model into `/app/models/<your-model-dir>`.
+2. Update the `model=` path used by vLLM in `app.py`.
+3. For private/gated models, pass your HuggingFace token during build (the Dockerfile supports `HF_TOKEN`).
 
 ### Styling the Web Interface
 
@@ -244,11 +273,12 @@ Feel free to submit issues and enhancement requests!
 
 ## 📚 Resources
 
-- [Google Gemma 3 Models](https://huggingface.co/bartowski/gemma-3-4b-it-GGUF)
-- [llama-cpp-python Documentation](https://llama-cpp-python.readthedocs.io/)
+- [Google Gemma 3 (HuggingFace)](https://huggingface.co/google/gemma-3-4b-it)
+- [vLLM](https://docs.vllm.ai/)
+- [Transformers](https://huggingface.co/docs/transformers/index)
 - [Azure Container Apps](https://learn.microsoft.com/azure/container-apps/)
 - [HuggingFace Hub](https://huggingface.co/docs/hub/index)
 
 ---
 
-**Note**: This solution is perfect for hosting your own fine-tuned models! Simply replace the HuggingFace model download command with your custom model and deploy following the same process.
+**Note**: This solution is a good starting point for hosting your own fine-tuned (HF) models on ACA GPU Serverless. Replace the model download + model path, rebuild, and redeploy.
