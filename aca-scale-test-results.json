@@ -1,0 +1,179 @@
+{
+  "endpoint": "/describeimagebatch",
+  "requests": 10,
+  "concurrency": 10,
+  "imagesPerRequest": 1,
+  "totalMs": 42428,
+  "results": [
+    {
+      "requestIndex": 0,
+      "ok": true,
+      "ms": 36915,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 1,
+      "ok": true,
+      "ms": 41406,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 2,
+      "ok": true,
+      "ms": 42423,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 3,
+      "ok": true,
+      "ms": 41403,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 4,
+      "ok": true,
+      "ms": 37195,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 5,
+      "ok": true,
+      "ms": 41399,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 6,
+      "ok": true,
+      "ms": 37190,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 7,
+      "ok": true,
+      "ms": 41394,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 8,
+      "ok": true,
+      "ms": 37187,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    },
+    {
+      "requestIndex": 9,
+      "ok": true,
+      "ms": 41390,
+      "status": 200,
+      "instanceId": "gemma-3-4b-gpu--x2sdz15",
+      "error": null,
+      "payload": {
+        "kind": "batch",
+        "results": [
+          {
+            "filename": "2025-12-10 132755-gpt-image-1.png",
+            "response": "```json\n{\n  \"image_description\": \"The image is a stylized illustration depicting a road with arrows pointing forward. The road is dark gray with white lines indicating lanes.  The illustration uses a vibrant color palette with orange, black, and white.  There are several icons and text elements placed along the road, representing key concepts related to agile project management.\",\n  \"elements\": [\n    {\n      \"type\": \"icon\",\n      \"description\": \"Spider Web\",\n      \"color\": \"black\",\n      \"text\": \"SPIDER NET\",\n      \"position\": \"left\"\n"
+          }
+        ]
+      }
+    }
+  ]
+}

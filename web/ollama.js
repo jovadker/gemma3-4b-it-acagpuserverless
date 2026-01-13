@@ -11,6 +11,8 @@ let statusBaseText = ""
 let statusTicker = null
 let statusTickerStartedAtMs = 0
 
+let scaleTestDownloadUrl = null
+
 function getUi(){
     return {
         question: document.querySelector("#question"),
@@ -45,6 +47,96 @@ function _pct(values, p){
 async function _consumeStreamToEnd(response){
     // Drain a streaming endpoint so the server can finish the request.
     await streamNdjson(response, async () => {})
+}
+
+function _asText(v){
+    if (v === null || v === undefined) return ""
+    return typeof v === "string" ? v : String(v)
+}
+
+function _clip(s, maxLen){
+    const t = _asText(s)
+    if (t.length <= maxLen) return t
+    return t.slice(0, Math.max(0, maxLen - 1)) + "…"
+}
+
+function _summarizePayload(payload){
+    if (!payload || typeof payload !== "object") return "(no payload)"
+
+    if (payload.kind === "single") {
+        const name = payload.filename ? `${payload.filename}: ` : ""
+        return _clip(name + _asText(payload.response), 220)
+    }
+
+    if (payload.kind === "batch") {
+        const items = Array.isArray(payload.results) ? payload.results : []
+        const ok = items.filter(x => x && !x.error).length
+        const err = items.filter(x => x && x.error).length
+        return `batch: ${ok} ok, ${err} errors`
+    }
+
+    if (payload.kind === "batchstream") {
+        return `batchstream: ${payload.okCount || 0} ok, ${payload.errCount || 0} errors`
+    }
+
+    return _clip(JSON.stringify(payload), 220)
+}
+
+async function _readDescribeResponse(endpoint, resp){
+    // Normalize the various endpoints to a small object we can show in the UI.
+    if (endpoint === "/describeimagebatchstream") {
+        const results = []
+        // Capture all per-image results for this request.
+        await streamNdjson(resp, async (obj) => {
+            if (!obj || typeof obj !== "object") return
+            if (obj.type === "result") {
+                results.push({
+                    type: "result",
+                    index: obj.index,
+                    filename: obj.filename,
+                    response: obj.response ? _clip(obj.response, 4000) : undefined,
+                    error: obj.error ? _clip(obj.error, 800) : undefined,
+                })
+            }
+        })
+
+        const ok = results.filter(r => r && !r.error)
+        const err = results.filter(r => r && r.error)
+        return {
+            kind: "batchstream",
+            okCount: ok.length,
+            errCount: err.length,
+            results,
+        }
+    }
+
+    // Non-streaming endpoints
+    const json = await resp.json().catch(() => null)
+    if (!json || typeof json !== "object") {
+        return { kind: "unknown", raw: "(no json)" }
+    }
+
+    if (endpoint === "/describeimage") {
+        return {
+            kind: "single",
+            filename: json.filename,
+            response: json.response ? _clip(json.response, 4000) : "",
+        }
+    }
+    if (endpoint === "/describeimagebatch") {
+        return {
+            kind: "batch",
+            results: Array.isArray(json.results)
+                ? json.results.map(r => ({
+                    filename: r && r.filename ? r.filename : undefined,
+                    response: r && r.response ? _clip(r.response, 4000) : undefined,
+                    error: r && r.error ? _clip(r.error, 800) : undefined,
+                }))
+                : [],
+        }
+    }
+
+    return { kind: "json", json }
 }
 
 async function runScaleTest(){
@@ -111,13 +203,16 @@ async function runScaleTest(){
                 }
 
                 const resp = await fetch(endpoint, { method: "POST", body: form })
+                const headersAt = nowMs()
                 const instanceId = resp.headers.get("x-instance-id") || "(unknown)"
 
                 if (!resp.ok) {
                     const text = await resp.text().catch(() => "")
+                    const ended = nowMs()
                     results[i] = {
                         ok: false,
-                        ms: Math.max(0, Math.round(nowMs() - started)),
+                        ms: Math.max(0, Math.round(ended - started)),
+                        ttfbMs: Math.max(0, Math.round(headersAt - started)),
                         status: resp.status,
                         instanceId,
                         error: (text || "").slice(0, 300),
@@ -125,22 +220,23 @@ async function runScaleTest(){
                     return
                 }
 
-                if (endpoint === "/describeimagebatchstream") {
-                    await _consumeStreamToEnd(resp)
-                } else {
-                    await resp.json().catch(() => null)
-                }
+                // Capture outputs for ALL requests.
+                const payload = await _readDescribeResponse(endpoint, resp)
+                const ended = nowMs()
 
                 results[i] = {
                     ok: true,
-                    ms: Math.max(0, Math.round(nowMs() - started)),
+                    ms: Math.max(0, Math.round(ended - started)),
+                    ttfbMs: Math.max(0, Math.round(headersAt - started)),
                     status: resp.status,
                     instanceId,
+                    payload,
                 }
             } catch (e) {
                 results[i] = {
                     ok: false,
                     ms: 0,
+                    ttfbMs: 0,
                     status: 0,
                     instanceId: "(unknown)",
                     error: e && e.message ? e.message : String(e),
@@ -155,7 +251,8 @@ async function runScaleTest(){
 
         const ok = results.filter(r => r && r.ok)
         const failed = results.filter(r => r && !r.ok)
-        const lats = results.map(r => (r ? r.ms : 0)).filter(ms => ms > 0)
+        const latsE2E = results.map(r => (r ? r.ms : 0)).filter(ms => ms > 0)
+        const latsTTFB = results.map(r => (r ? (typeof r.ttfbMs === "number" ? r.ttfbMs : 0) : 0)).filter(ms => ms > 0)
 
         const byInstance = new Map()
         for (const r of ok) {
@@ -168,14 +265,62 @@ async function runScaleTest(){
         md += `**Requests:** ${N}  **Concurrency:** ${C}  **Images/request:** ${files.length}\n\n`
         md += `**Succeeded:** ${ok.length}  **Failed:** ${failed.length}  **Total:** ${totalMs}ms\n\n`
 
-        if (lats.length > 0) {
-            md += `**Latency (ms):** min ${Math.min(...lats)} | p50 ${_pct(lats, 0.50)} | p90 ${_pct(lats, 0.90)} | p99 ${_pct(lats, 0.99)} | max ${Math.max(...lats)}\n\n`
+        if (latsTTFB.length > 0) {
+            md += `**TTFB (ms):** min ${Math.min(...latsTTFB)} | p50 ${_pct(latsTTFB, 0.50)} | p90 ${_pct(latsTTFB, 0.90)} | p99 ${_pct(latsTTFB, 0.99)} | max ${Math.max(...latsTTFB)}\n\n`
+        }
+
+        if (latsE2E.length > 0) {
+            md += `**End-to-end (ms):** min ${Math.min(...latsE2E)} | p50 ${_pct(latsE2E, 0.50)} | p90 ${_pct(latsE2E, 0.90)} | p99 ${_pct(latsE2E, 0.99)} | max ${Math.max(...latsE2E)}\n\n`
         }
 
         md += `### Instances (from x-instance-id)\n\n`
         md += `| instance | ok requests |\n|:--|--:|\n`
         for (const [instance, count] of [...byInstance.entries()].sort((a, b) => b[1] - a[1])) {
             md += `| ${instance} | ${count} |\n`
+        }
+
+        // Create a downloadable JSON with all per-request samples.
+        try {
+            const payloadAll = results.map((r, idx) => ({
+                requestIndex: idx,
+                ok: !!(r && r.ok),
+                ms: r && typeof r.ms === "number" ? r.ms : null,
+                status: r && typeof r.status === "number" ? r.status : null,
+                instanceId: r && r.instanceId ? r.instanceId : null,
+                error: r && r.error ? r.error : null,
+                payload: r && r.payload ? r.payload : null,
+            }))
+
+            const blob = new Blob([JSON.stringify({
+                endpoint,
+                requests: N,
+                concurrency: C,
+                imagesPerRequest: files.length,
+                totalMs,
+                results: payloadAll,
+            }, null, 2)], { type: "application/json" })
+
+            if (scaleTestDownloadUrl) {
+                try { URL.revokeObjectURL(scaleTestDownloadUrl) } catch { /* ignore */ }
+            }
+            scaleTestDownloadUrl = URL.createObjectURL(blob)
+            md += `\n### All samples\n\n`
+            md += `<a href="${scaleTestDownloadUrl}" download="aca-scale-test-results.json">Download results JSON</a>\n\n`
+        } catch {
+            // ignore download failures
+        }
+
+        // Compact per-request summary (keeps UI usable even for large N).
+        md += `\n### Per-request summary\n\n`
+        md += `| # | ttfb ms | e2e ms | status | instance | summary |\n|---:|---:|---:|---:|:--|:--|\n`
+        for (let i = 0; i < results.length; i++) {
+            const r = results[i]
+            const ms = r && typeof r.ms === "number" ? r.ms : 0
+            const ttfb = r && typeof r.ttfbMs === "number" ? r.ttfbMs : 0
+            const st = r && typeof r.status === "number" ? r.status : 0
+            const inst = r && r.instanceId ? r.instanceId : "(unknown)"
+            const summary = r && r.ok ? _summarizePayload(r.payload) : _clip(r && r.error ? r.error : "(failed)", 220)
+            md += `| ${i + 1} | ${ttfb} | ${ms} | ${st} | ${inst} | ${summary.replace(/\r?\n/g, " ")} |\n`
         }
 
         if (failed.length > 0) {
