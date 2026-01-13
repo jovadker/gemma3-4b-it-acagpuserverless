@@ -32,10 +32,13 @@ param cpuCores string = '4.0'
 param memorySize string = '16Gi'
 
 @description('Minimum replicas')
-param minReplicas int = 0
+param minReplicas int = 2
 
 @description('Maximum replicas')
-param maxReplicas int = 1
+param maxReplicas int = 2
+
+@description('HTTP scaling threshold: concurrent requests per replica before scaling out')
+param httpScaleConcurrentRequests int = 1
 
 // Log Analytics Workspace for monitoring
 resource workspaces_workspacegpullmrg9013_name_resource 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
@@ -100,24 +103,16 @@ resource containerapps_gemma_3_4b_gpu_name_resource 'Microsoft.App/containerApps
           }
           env: [
             {
-              name: 'CUDA_VISIBLE_DEVICES'
-              value: '0'
-            }
-            {
-              name: 'NVIDIA_VISIBLE_DEVICES'
-              value: 'all'
-            }
-            {
               name: 'NVIDIA_DRIVER_CAPABILITIES'
               value: 'compute,utility'
             }
             {
               name: 'VLLM_GPU_MEMORY_UTILIZATION'
-              value: '0.90'
+              value: '0.70'
             }
             {
               name: 'VLLM_ENFORCE_EAGER'
-              value: 'false'
+              value: 'true'
             }
           ]
         }
@@ -125,6 +120,16 @@ resource containerapps_gemma_3_4b_gpu_name_resource 'Microsoft.App/containerApps
       scale: {
         minReplicas: minReplicas
         maxReplicas: maxReplicas
+        rules: [
+          {
+            name: 'http-concurrency'
+            http: {
+              metadata: {
+                concurrentRequests: string(httpScaleConcurrentRequests)
+              }
+            }
+          }
+        ]
       }
     }
   }
